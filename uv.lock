@@ -71,7 +71,7 @@ wheels = [
 
 [[package]]
 name = "obs-deploy"
-version = "3.4.1"
+version = "1.0.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
