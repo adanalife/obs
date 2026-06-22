@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v1.0.2] — 2026-06-22
+
+### Added
+
+- Activate prod-1 YouTube streaming (unparked obs-youtube, streaming to the prod YouTube ingest). ([#6](https://github.com/adanalife/obs/pull/6))
+
 ## [v1.0.0] — 2026-06-22
 
 ### Added
