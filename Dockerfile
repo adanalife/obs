@@ -3,14 +3,14 @@
 # numpy/scipy + ffmpeg, so those generators never land in the final image — the
 # image gains only the resulting FLAC bytes. Reuses the already-mirrored ubuntu
 # base (apt ships python3-numpy/scipy + ffmpeg), so there's no extra GHCR mirror
-# to maintain. See script/carhum/render-variants.sh.
+# to maintain. See carhum/render-variants.sh.
 FROM ghcr.io/adanalife/mirror/ubuntu:24.04 AS carhum
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
          python3 python3-numpy python3-scipy ffmpeg bash \
     && rm -rf /var/lib/apt/lists/*
-COPY script/carhum/ /opt/carhum/
+COPY carhum/ /opt/carhum/
 RUN bash /opt/carhum/render-variants.sh /opt/carhum/out
 
 FROM ghcr.io/adanalife/mirror/ubuntu:24.04
@@ -97,23 +97,23 @@ RUN curl -fsSL "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSIO
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/xdg-screensaver \
     && chmod +x /usr/local/bin/xdg-screensaver
 
-COPY infra/docker/obs/config/ /opt/obs/config/
-COPY infra/docker/obs/script/ /opt/obs/script/
-COPY infra/docker/obs/entrypoint.sh /opt/obs/entrypoint.sh
-COPY infra/docker/obs/healthcheck.sh /opt/obs/healthcheck.sh
+COPY config/ /opt/obs/config/
+COPY script/ /opt/obs/script/
+COPY entrypoint.sh /opt/obs/entrypoint.sh
+COPY healthcheck.sh /opt/obs/healthcheck.sh
 COPY bin/obs-browser-refresh /opt/obs/bin/obs-browser-refresh
 RUN chmod +x /opt/obs/entrypoint.sh /opt/obs/healthcheck.sh \
              /opt/obs/bin/obs-browser-refresh /opt/obs/script/*.sh
 
 # Per-program supervisor configs live in /etc/supervisor/conf.d/. The
 # default supervisord.conf from the package globs *.conf out of that dir.
-COPY infra/docker/obs/supervisor/ /etc/supervisor/conf.d/
+COPY supervisor/ /etc/supervisor/conf.d/
 
 COPY assets/twitch-overlay-left.png assets/twitch-overlay-right.png /opt/tripbot/assets/
 
 # License-clean car-interior drones — the YouTube scene's background audio,
 # cycled live by tripbot's !carsound command. Rendered at build time by the
-# `carhum` stage above (script/carhum/), not committed to git. The "Car Hum"
+# `carhum` stage above (carhum/), not committed to git. The "Car Hum"
 # ffmpeg_source in Tripbot.json.tmpl points at one of these; SomaFM is stripped
 # on YouTube and a car-sound plays in its place.
 COPY --from=carhum /opt/carhum/out/*.flac /opt/tripbot/assets/carhum/

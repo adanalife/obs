@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Called by infra/docker/obs/Dockerfile{,.arm64} (HEALTHCHECK CMD) and by
+# Called by Dockerfile{,.arm64} (HEALTHCHECK CMD) and by
 # the OBS deployment's livenessProbe. Healthy when:
 #   - the obs process is alive
 #   - sway is reachable (compositor is up)

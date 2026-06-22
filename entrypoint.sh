@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Called by infra/docker/obs/Dockerfile{,.arm64} (ENTRYPOINT via tini):
+# Called by Dockerfile{,.arm64} (ENTRYPOINT via tini):
 # OBS container entrypoint — seeds OBS config from templates, then hands off
 # to supervisor which manages sway/wayvnc/obs/browser-refresh.
 #
@@ -88,7 +88,7 @@ envsubst < /opt/obs/config/Tripbot.json.tmpl > "$OBS_HOME/basic/scenes/Tripbot.j
 #     trips YouTube's Content ID and earns copyright strikes. Twitch tolerates
 #     it, so it stays on Twitch and is stripped on YouTube.
 #   - "Car Hum" (a locally-generated, license-clean drone — see
-#     script/carhum/) is the YouTube background bed in its place, and is
+#     carhum/) is the YouTube background bed in its place, and is
 #     stripped on Twitch so the two don't both play.
 #
 # Top-level "sources" holds both real sources and the scene objects (scenes

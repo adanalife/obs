@@ -8,7 +8,7 @@ recording, it can't earn a YouTube Content ID claim or copyright strike.
 It's the source of [`assets/audio/car-hum-loop.flac`](../../assets/audio/car-hum-loop.flac),
 the background-audio bed the OBS **YouTube** scene plays in place of the
 SomaFM source (which is stripped on YouTube — see
-`infra/docker/obs/entrypoint.sh`).
+`entrypoint.sh`).
 
 ## Regenerating the asset
 
