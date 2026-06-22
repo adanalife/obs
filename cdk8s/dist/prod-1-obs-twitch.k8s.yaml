@@ -10,11 +10,11 @@ metadata:
   namespace: prod-1
 data:
   DASHCAM_RTSP_URL: rtsp://vlc-twitch:8554/dashcam
-  OBS_QUALITY_PRESET: high
-  OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
-  OBS_WEBSOCKET_PASSWD: adanalife
   ONSCREENS_URL_BASE: http://onscreens-twitch:8080
   VLC_URL_BASE: http://vlc-twitch:8080
+  OBS_WEBSOCKET_PASSWD: adanalife
+  OBS_QUALITY_PRESET: high
+  OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -22,17 +22,17 @@ metadata:
   name: obs-stream-key
   namespace: prod-1
 spec:
-  data:
-    - remoteRef:
-        key: k8s/obs/twitch-stream-key
-      secretKey: STREAM_KEY
   refreshInterval: 1h
   secretStoreRef:
-    kind: SecretStore
     name: aws-secretsmanager
+    kind: SecretStore
   target:
-    creationPolicy: Owner
     name: obs-stream-key
+    creationPolicy: Owner
+  data:
+    - secretKey: STREAM_KEY
+      remoteRef:
+        key: k8s/obs/twitch-stream-key
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -45,7 +45,6 @@ metadata:
   name: obs-twitch
   namespace: prod-1
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: obs-twitch
@@ -53,58 +52,59 @@ spec:
     type: Recreate
   template:
     metadata:
-      annotations:
-        adanalife.dev/config-hash: 8d09643251
       labels:
         app: obs-twitch
-        app.kubernetes.io/instance: obs-twitch
         app.kubernetes.io/name: obs
+        app.kubernetes.io/instance: obs-twitch
         app.kubernetes.io/part-of: tripbot
+      annotations:
+        adanalife.dev/config-hash: 8d09643251
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-        - envFrom:
-            - configMapRef:
-                name: obs-twitch-config
-            - secretRef:
-                name: obs-stream-key
-                optional: true
-          image: adanalife/obs:3.4.1
+        - name: obs
+          image: ghcr.io/adanalife/obs:3.4.1
           imagePullPolicy: IfNotPresent
-          livenessProbe:
-            exec:
-              command:
-                - /opt/obs/healthcheck.sh
-            failureThreshold: 3
-            initialDelaySeconds: 15
-            periodSeconds: 30
-            timeoutSeconds: 10
-          name: obs
-          ports:
-            - containerPort: 5900
-              name: vnc
-            - containerPort: 4455
-              name: websocket
-            - containerPort: 6080
-              name: novnc
-            - containerPort: 8080
-              name: obs-server
-          resources:
-            limits:
-              gpu.intel.com/i915: "1"
-              memory: 3Gi
-            requests:
-              cpu: "2"
-              gpu.intel.com/i915: "1"
-              memory: 512Mi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
+          ports:
+            - name: vnc
+              containerPort: 5900
+            - name: websocket
+              containerPort: 4455
+            - name: novnc
+              containerPort: 6080
+            - name: obs-server
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: obs-twitch-config
+            - secretRef:
+                name: obs-stream-key
+                optional: true
+          livenessProbe:
+            exec:
+              command:
+                - /opt/obs/healthcheck.sh
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "2"
+              memory: 512Mi
+              gpu.intel.com/i915: "1"
+            limits:
+              memory: 3Gi
+              gpu.intel.com/i915: "1"
       priorityClassName: prod-stream
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
+  replicas: 1
 ---
 apiVersion: v1
 kind: Service
@@ -117,6 +117,9 @@ metadata:
   name: obs-twitch
   namespace: prod-1
 spec:
+  type: ClusterIP
+  selector:
+    app: obs-twitch
   ports:
     - name: vnc
       port: 5900
@@ -130,9 +133,6 @@ spec:
     - name: obs-server
       port: 8080
       targetPort: obs-server
-  selector:
-    app: obs-twitch
-  type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -148,13 +148,13 @@ spec:
     - host: obs-twitch.prod.whereisdana.today
       http:
         paths:
-          - backend:
+          - path: /
+            pathType: Prefix
+            backend:
               service:
                 name: obs-twitch
                 port:
                   name: novnc
-            path: /
-            pathType: Prefix
   tls:
     - hosts:
         - obs-twitch.prod.whereisdana.today
@@ -166,12 +166,12 @@ metadata:
   name: obs-twitch-ts
   namespace: prod-1
 spec:
+  ingressClassName: tailscale
   defaultBackend:
     service:
       name: obs-twitch
       port:
         number: 6080
-  ingressClassName: tailscale
   tls:
     - hosts:
         - obs-twitch-prod
