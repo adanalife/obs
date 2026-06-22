@@ -4,12 +4,11 @@
 # packages in the same repo, so no extra secret is needed.
 #
 # Built matrix-on-native-runners (tripbot's pattern): each arch builds on its own
-# native runner — no QEMU. amd64 uses Dockerfile (OBS from the obsproject PPA);
-# arm64 uses Dockerfile.arm64 (OBS from source, COPYing out of the pre-baked
-# ghcr.io/adanalife/obs-cef-base — rebuilt separately by obs-base.yml). The arm64
-# leg routes to the org-level self-hosted rpi5 runner (arc-arm64-tripbot) when
-# online, else GitHub-hosted ubuntu-24.04-arm; a manifest job stitches the
-# per-arch tags into the multi-arch list.
+# native GitHub-hosted runner — no QEMU. amd64 uses Dockerfile (OBS from the
+# obsproject PPA) on ubuntu-latest; arm64 uses Dockerfile.arm64 (OBS from source,
+# COPYing out of the pre-baked ghcr.io/adanalife/obs-cef-base — rebuilt separately
+# by obs-base.yml) on ubuntu-24.04-arm; a manifest job stitches the per-arch tags
+# into the multi-arch list.
 #
 # NOTE: prod runs OBS on the amd64 minipc today; the arm64 image is built for
 # parity and is ready if OBS ever lands on an arm64 node.
@@ -27,36 +26,7 @@ permissions:
   packages: write
 
 jobs:
-  pick-runner:
-    runs-on: ubuntu-latest
-    outputs:
-      arm64_runner: ${{ steps.pick.outputs.arm64_runner }}
-    steps:
-      - name: Mint ARC GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          app-id: ${{ vars.ARC_APP_ID }}
-          private-key: ${{ secrets.ARC_APP_PRIVATE_KEY }}
-      - name: Pick arm64 runner (self-hosted if online, else GitHub-hosted)
-        id: pick
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          # ARC scale-set runners route by scale-set NAME and report empty
-          # .labels via this API, so match on the runner name prefix.
-          online=$(gh api "orgs/${{ github.repository_owner }}/actions/runners" \
-            --jq 'any(.runners[]; .status=="online" and (.name|startswith("arc-arm64-tripbot")))')
-          if [ "$online" = "true" ]; then
-            echo "arm64_runner=arc-arm64-tripbot" >> "$GITHUB_OUTPUT"
-            echo "::notice::arm64 leg → self-hosted rpi5 runner (arc-arm64-tripbot)"
-          else
-            echo "arm64_runner=ubuntu-24.04-arm" >> "$GITHUB_OUTPUT"
-            echo "::notice::arm64 leg → GitHub-hosted (rpi5 runner offline)"
-          fi
-
   build:
-    needs: pick-runner
     name: build (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
@@ -68,7 +38,7 @@ jobs:
             runner: ubuntu-latest
             dockerfile: Dockerfile
           - arch: arm64
-            runner: ${{ needs.pick-runner.outputs.arm64_runner }}
+            runner: ubuntu-24.04-arm
             dockerfile: Dockerfile.arm64
     steps:
       - uses: actions/checkout@v7
