@@ -1,0 +1,5 @@
+# python + node power the cdk8s/ deploy-authoring layer only (cdk8s runs on
+# jsii, which needs node). This repo's artifact is a Docker image (OBS Studio +
+# Python/bash/config baked in) — there is no compiled application toolchain.
+python 3.13
+node 24

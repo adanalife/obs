@@ -1,0 +1,39 @@
+name: auto-tag
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write # push the tag
+  actions: write # dispatch release.yml
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Default bump is patch. Include `#minor` or `#major` in a commit message
+      # between the last tag and HEAD to override.
+      #
+      # The tag is pushed with the plain GITHUB_TOKEN and release.yml is then
+      # dispatched explicitly — a GITHUB_TOKEN-pushed tag doesn't fire workflow
+      # `push: tags` triggers, and the org PAT tripbot uses can't be shared with
+      # a private repo on the free plan. workflow_dispatch is the documented
+      # exception to the no-recursive-trigger rule. No PAT to provision.
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
+          RELEASE_BRANCHES: master
+
+      - name: Dispatch release workflow at the new tag
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "${{ steps.tag.outputs.new_tag }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

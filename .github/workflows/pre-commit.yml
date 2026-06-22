@@ -1,0 +1,21 @@
+name: pre-commit
+on:
+  pull_request:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # mise puts python + node on PATH from .tool-versions (for ruff +
+      # markdownlint). No Go toolchain — this repo ships a Docker image, not a
+      # compiled binary.
+      - uses: jdx/mise-action@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .tool-versions
+      # no-commit-to-branch guards local commits; in CI the checkout is the
+      # branch itself, so the hook would false-positive on master/develop.
+      - uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: no-commit-to-branch

@@ -1,0 +1,29 @@
+# Verifies the committed cdk8s/dist/ deploy units are in sync with the
+# authoring code: re-synth and fail on any diff. Verify-only — the synth is
+# fast enough to run locally via `task cdk8s:synth`.
+name: cdk8s-synth
+on:
+  pull_request:
+    paths:
+      - 'cdk8s/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/cdk8s-synth.yml'
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - 'cdk8s/**'
+
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - uses: astral-sh/setup-uv@v7
+      - name: Synth
+        run: uv run --group cdk8s python cdk8s/main.py
+      - name: Verify dist/ is committed in sync
+        run: git diff --exit-code cdk8s/dist/

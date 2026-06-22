@@ -1,0 +1,17 @@
+# Keep the build context lean. Everything the Dockerfiles COPY (carhum/, config/,
+# script/, supervisor/, assets/, bin/obs-browser-refresh, entrypoint.sh,
+# healthcheck.sh) must NOT be listed here.
+.git
+.github
+cdk8s/
+desktop-profiles/
+changelog.d/
+*.md
+Taskfile.yml
+towncrier.toml
+pyproject.toml
+uv.lock
+.tool-versions
+.pre-commit-config.yaml
+.gitignore
+.dockerignore

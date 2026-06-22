@@ -1,0 +1,21 @@
+# This pyproject exists ONLY for the cdk8s/ deploy-authoring layer (the
+# Kubernetes manifests that deploy the OBS image). The artifact this repo
+# produces is a Docker image, not a Python package. Mirrors platform-gateway's
+# and tripbot-console's plain-python cdk8s setup.
+[project]
+name = "obs-deploy"
+version = "3.4.1"
+description = "cdk8s deploy authoring for the adanalife OBS image (not the image itself)"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+# The k8s authoring layer (cdk8s/). Synth via `task cdk8s:synth`.
+cdk8s = [
+    "cdk8s>=2.70.75",
+    "constructs>=10.3",
+    "pyyaml>=6.0.3",
+]
+
+[tool.uv]
+package = false

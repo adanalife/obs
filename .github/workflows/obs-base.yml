@@ -1,14 +1,14 @@
 name: obs-base
-# Bakes adanalife/obs-cef-base:arm64-<OBS>-<CEF> + arm64-latest, which
-# Dockerfile.arm64 then COPYs the OBS install tree out of. This is a 90-min
+# Bakes ghcr.io/adanalife/obs-cef-base:arm64-<OBS>-<CEF> + arm64-latest, which
+# Dockerfile.arm64 then COPYs the OBS install tree out of. This is a ~90-min
 # arm64 CEF compile, so it must only run when it has to.
 #
 # Scoped to develop/master pushes that touch the base Dockerfile or this
-# workflow. The branches filter is load-bearing: GitHub ignores `paths`
-# filters on tag pushes, so without it every `v*` release tag bypassed the
-# path filter and triggered a full rebake (even though the base hadn't
-# changed). Manual dispatch stays available for re-bakes (e.g., chasing a
-# CEF tarball mirror change).
+# workflow. The branches filter is load-bearing: GitHub ignores `paths` filters
+# on tag pushes, so without it every `v*` release tag would bypass the path
+# filter and trigger a full rebake. Manual dispatch stays available for re-bakes
+# (e.g. chasing a CEF tarball mirror change) and for the first-time bootstrap of
+# the package before the first arm64 release build.
 on:
   workflow_dispatch:
   push:
@@ -16,25 +16,29 @@ on:
       - develop
       - master
     paths:
-      - 'infra/docker/obs/Dockerfile.arm64-base'
+      - 'Dockerfile.arm64-base'
       - '.github/workflows/obs-base.yml'
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   arm64:
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # Parse OBS_VERSION / CEF_VERSION out of the Dockerfile so the tag
-      # always matches what was actually built. Single source of truth lives
-      # in the Dockerfile ARG defaults.
+      # Parse OBS_VERSION / CEF_VERSION out of the Dockerfile so the tag always
+      # matches what was actually built. Single source of truth lives in the
+      # Dockerfile ARG defaults.
       - name: Extract versions
         id: vers
         run: |
-          OBS=$(grep -E '^ARG OBS_VERSION=' infra/docker/obs/Dockerfile.arm64-base | cut -d= -f2)
-          CEF=$(grep -E '^ARG CEF_VERSION=' infra/docker/obs/Dockerfile.arm64-base | cut -d= -f2)
+          OBS=$(grep -E '^ARG OBS_VERSION=' Dockerfile.arm64-base | cut -d= -f2)
+          CEF=$(grep -E '^ARG CEF_VERSION=' Dockerfile.arm64-base | cut -d= -f2)
           echo "obs=$OBS" >> "$GITHUB_OUTPUT"
           echo "cef=$CEF" >> "$GITHUB_OUTPUT"
           echo "Building obs-cef-base:arm64-${OBS}-${CEF}"
@@ -42,21 +46,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Login to DockerHub
+      - name: Login to GHCR
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: infra/docker/obs/Dockerfile.arm64-base
+          file: Dockerfile.arm64-base
           platforms: linux/arm64
           push: true
           tags: |
-            adanalife/obs-cef-base:arm64-${{ steps.vers.outputs.obs }}-${{ steps.vers.outputs.cef }}
-            adanalife/obs-cef-base:arm64-latest
+            ghcr.io/adanalife/obs-cef-base:arm64-${{ steps.vers.outputs.obs }}-${{ steps.vers.outputs.cef }}
+            ghcr.io/adanalife/obs-cef-base:arm64-latest
           cache-from: type=gha,scope=obs-cef-base-arm64
           cache-to: type=gha,mode=max,scope=obs-cef-base-arm64

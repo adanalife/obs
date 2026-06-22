@@ -1,0 +1,24 @@
+# Local env / secrets (never commit; runtime config comes from the k8s ConfigMap
+# + SM-backed secrets, see cdk8s/).
+*.env
+secret.env
+.env.local
+
+# carhum render output — the FLAC variants are generated at image-build time by
+# the Dockerfile's `carhum` stage, never committed (see carhum/render-variants.sh).
+carhum/out/
+
+# Python (cdk8s authoring layer only — cdk8s/dist/ IS committed + golden-gated).
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Claude Code local settings
+.claude/settings.local.json

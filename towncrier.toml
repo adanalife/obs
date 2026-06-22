@@ -1,0 +1,62 @@
+# Changelog fragments, assembled by towncrier at release time.
+#
+# Every feature/fix PR drops a fragment in changelog.d/ named <PR>.<type>.md
+# (e.g. 42.fixed.md). Run via uvx — no project dependency:
+#
+#   uvx towncrier create --config towncrier.toml 42.fixed.md   # scaffold
+#   task changelog:preview                                     # pending notes
+#   task changelog:build VERSION=1.2.0                         # collate
+#
+# Sections are the standard Keep-a-Changelog types (Added / Changed / Fixed /
+# …), modeled as towncrier "types". The optional `summary` type renders as the
+# lead paragraph for the release. (tripbot uses component sections instead; this
+# repo is young enough that the standard types fit fine.)
+[tool.towncrier]
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+template = ".github/towncrier-template.md"
+start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## [v{version}] — {project_date}"
+issue_format = "[#{issue}](https://github.com/adanalife/obs/pull/{issue})"
+wrap = false
+all_bullets = true
+
+[[tool.towncrier.type]]
+directory = "summary"
+name = "Summary"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Misc"
+showcontent = true

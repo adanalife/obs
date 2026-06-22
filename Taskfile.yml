@@ -1,0 +1,74 @@
+version: "3"
+
+vars:
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  SHA:
+    sh: git rev-parse HEAD 2>/dev/null || echo unknown
+
+tasks:
+  image:build:
+    desc: Build the OBS image locally (amd64, tagged obs:dev)
+    cmds:
+      - docker build -f Dockerfile --build-arg VERSION={{.VERSION}} --build-arg SHA={{.SHA}} -t obs:dev .
+
+  image:build:arm64:
+    desc: Build the arm64 OBS image locally (pulls ghcr.io/adanalife/obs-cef-base)
+    cmds:
+      - docker build -f Dockerfile.arm64 --build-arg VERSION={{.VERSION}} --build-arg SHA={{.SHA}} -t obs:dev-arm64 .
+
+  image:smoke:
+    desc: Build the amd64 image, run it (no STREAM_KEY), and wait for the healthcheck
+    cmds:
+      - task: image:build
+      - docker rm -f obs-smoke 2>/dev/null || true
+      - docker run -d --name obs-smoke obs:dev
+      - |
+        for i in $(seq 1 30); do
+          state=$(docker inspect -f '{{`{{.State.Health.Status}}`}}' obs-smoke)
+          echo "OBS health: $state ($i/30)"
+          [ "$state" = "healthy" ] && break
+          sleep 2
+        done
+        docker logs obs-smoke
+        test "$(docker inspect -f '{{`{{.State.Health.Status}}`}}' obs-smoke)" = "healthy"
+      - docker rm -f obs-smoke
+
+  carhum:render:
+    desc: Render the car-hum FLAC variants locally into carhum/out/ (needs numpy/scipy/ffmpeg)
+    cmds:
+      - bash carhum/render-variants.sh carhum/out
+
+  cdk8s:synth:
+    desc: Synthesize the k8s deploy manifests into cdk8s/dist/
+    cmds:
+      - uv run --group cdk8s python cdk8s/main.py
+
+  # Changelog (towncrier). Fragments live in changelog.d/; assembled into
+  # CHANGELOG.md at release time. Run on the host via uvx — no project dep.
+  changelog:add:
+    desc: 'Scaffold a changelog fragment (PR=42 TYPE=fixed). Types: added changed deprecated removed fixed security misc summary'
+    requires:
+      vars: [PR]
+    vars:
+      TYPE: '{{.TYPE | default "misc"}}'
+    cmds:
+      - uvx towncrier create --config towncrier.toml --edit {{.PR}}.{{.TYPE}}.md
+
+  changelog:preview:
+    desc: Preview the pending changelog from the current fragments (towncrier draft)
+    cmds:
+      - uvx towncrier build --draft --config towncrier.toml --version Unreleased
+
+  changelog:build:
+    desc: Collate fragments into CHANGELOG.md for a release + delete them (VERSION=1.2.0)
+    requires:
+      vars: [VERSION]
+    # The top-level VERSION defaults to `git describe`, which would let this
+    # destructive task run with a dev-ish version. Require an explicit clean
+    # release version (e.g. 1.2.0 or v1.2.0) instead.
+    preconditions:
+      - sh: 'echo "{{.VERSION}}" | grep -qE "^v?[0-9]+\.[0-9]+\.[0-9]+$"'
+        msg: "VERSION must be an explicit release version like 1.2.0 (got '{{.VERSION}}'). Pass VERSION=x.y.z."
+    cmds:
+      - uvx towncrier build --yes --config towncrier.toml --version {{trimPrefix "v" .VERSION}}

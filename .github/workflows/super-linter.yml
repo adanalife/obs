@@ -1,0 +1,71 @@
+---
+name: super-linter
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - master
+
+jobs:
+  build:
+    name: Run Linters
+    runs-on: ubuntu-latest
+
+    steps:
+      # fetch-depth: 0 is required by super-linter v6+: it diffs against the
+      # default branch (develop) to figure out which files changed, so develop
+      # has to be present in the local checkout.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: run-linters
+        uses: super-linter/super-linter@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # don't post a "Super-linter summary" comment on every PR run
+          # (the Actions step summary tab still gets the same content)
+          ENABLE_GITHUB_PULL_REQUEST_SUMMARY_COMMENT: false
+          # Excluded paths:
+          #   - cdk8s/dist/: generated deploy units (synth output, golden-gated
+          #     by cdk8s-synth.yml) — lint the authoring code, not the artifact.
+          #   - uv.lock / go.sum: machine-generated; go.sum's module hashes also
+          #     trip codespell.
+          #   - towncrier-template.md: a Jinja template that *produces* markdown;
+          #     towncrier requires the .md extension (it picks markup from it),
+          #     but its `{% %}`/`[...]` syntax isn't valid markdown.
+          FILTER_REGEX_EXCLUDE: '.*cdk8s/dist/.*|.*(^|/)uv\.lock$|.*(^|/)go\.sum$|.*(^|/)towncrier-template\.md$'
+          # Go is linted by reviewdog golangci-lint (linting.yml) — skip the
+          # duplicate gate (and its module/releaser siblings).
+          VALIDATE_GO: false
+          VALIDATE_GO_MODULES: false
+          VALIDATE_GO_RELEASER: false
+          # Dockerfile linting not audited against hadolint yet (org default).
+          VALIDATE_DOCKERFILE_HADOLINT: false
+          # disabled cause they don't support CRDs rn (org default)
+          VALIDATE_KUBERNETES_KUBECONFORM: false
+          # disabled until the issues are worked through (matches tripbot/console)
+          VALIDATE_JSCPD: false
+          VALIDATE_ENV: false
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
+          VALIDATE_CHECKOV: false
+          VALIDATE_GITHUB_ACTIONS_ZIZMOR: false
+          VALIDATE_JSON_PRETTIER: false
+          VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_JAVASCRIPT_PRETTIER: false
+          VALIDATE_MARKDOWN_PRETTIER: false
+          VALIDATE_NATURAL_LANGUAGE: false
+          VALIDATE_SHELL_SHFMT: false
+          VALIDATE_TRIVY: false
+          VALIDATE_YAML_PRETTIER: false
+          # Python: Ruff (PYTHON_RUFF, on) is the single linter for the small
+          # cdk8s/ authoring layer. Disable the overlapping/contradictory gates,
+          # same rationale as tripbot (dueling formatters; no mypy value here).
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_RUFF_FORMAT: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_PYLINT: false
+          VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PYTHON_ISORT: false
