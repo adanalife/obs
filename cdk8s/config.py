@@ -75,8 +75,13 @@ ENVS: dict[str, EnvConfig] = {
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
         platforms=("twitch", "youtube"),
-        obs_streaming=("twitch",),
-        parked_platforms=("youtube",),
+        # youtube goes live unlisted: unparked (replicas=1) and streaming via
+        # VAAPI to the prod YouTube ingest (stream-key SM k8s/obs/youtube-stream-key,
+        # adanalife-prod). The two-live-encoder iGPU budget holds — prod-twitch +
+        # prod-youtube — once stage-youtube is scaled down. prod-twitch OBS stays
+        # delivered by tripbot-apps (in-tripbot build); only obs-youtube is cut
+        # over to this repo (per-platform OBS_PLATFORM_REVISIONS in infra).
+        obs_streaming=("twitch", "youtube"),
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
