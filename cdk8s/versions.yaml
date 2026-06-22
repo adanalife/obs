@@ -1,0 +1,12 @@
+# Per-component image pins, keyed by env then image name.
+#
+# Envs/components listed here deploy the pinned release tag (rollback = git
+# revert the bump commit). Anything absent floats on EnvConfig.image_tag
+# (develop on stage, latest on local) with imagePullPolicy: Always.
+#
+# Tags are the un-suffixed multi-arch manifest tags from release.yml — no `v`
+# prefix (3.4.1, not v3.4.1). Edited at release time (or by hand); run
+# `task cdk8s:synth` after changing a pin.
+prod-1:
+  # restarting takes the stream down until OBS reconnects — pick a quiet moment
+  obs: "3.4.1"

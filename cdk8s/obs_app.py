@@ -1,11 +1,16 @@
 """ObsInstance — one OBS deployment for a single streaming platform.
 
-Replaces the Kustomize obs/base + nameSuffix(-twitch/-youtube) + label-patch
-idiom with a first-class factory. `ObsInstance(platform="youtube", ...)` emits
-cleanly-named `obs-youtube` objects (no `obs-twitch-youtube` double-suffix), with
-`app: obs-youtube` selector derived from the instance name, so a Service can only
-ever select its own pods. Faithfully reproduces k8s/apps/obs/base + the per-env
-overlays (GPU, encoder, quality, stream-key toggle, ingress).
+`ObsInstance(platform="youtube", env=...)` emits cleanly-named `obs-youtube`
+objects (ConfigMap, Deployment, Service, and — per env — a stream-key
+ExternalSecret, a host-access LoadBalancer, and noVNC Ingresses), with an
+`app: obs-youtube` selector so a Service only ever selects its own pods. The
+per-env overlays (GPU claim, encoder, quality, stream-key toggle, ingress) are
+data on EnvConfig.
+
+Everything is cdk8s.ApiObject with literal specs — the same idiom as
+platform-gateway and tripbot-console. Rewritten from the typed `imports.k8s`
+construct it was extracted from; the synth output is diffed against the original
+manifests to guarantee deploy parity.
 """
 
 from __future__ import annotations
@@ -13,21 +18,77 @@ from __future__ import annotations
 import hashlib
 import json
 
+import cdk8s
+import contract
+from config import EnvConfig
 from constructs import Construct
 
-import imports.k8s as k8s
-from adanalife_k8s.config import EnvConfig
-from adanalife_k8s.contract import load_contract
-from adanalife_k8s.naming import app_name
-from adanalife_k8s.scheduling import prefer_rpi5_affinity, prefer_rpi5_tolerations
+IMAGE = "ghcr.io/adanalife/obs"
+PART_OF = "tripbot"
+CONFIG_HASH_ANNOTATION = "adanalife.dev/config-hash"
 
-# (port-name, port-number) — order/names match k8s/apps/obs/base/{deployment,service}.yaml
-_PORTS = [
-    ("vnc", "obs_vnc"),
-    ("websocket", "obs_websocket"),
-    ("novnc", "obs_novnc"),
-    ("obs-server", "obs_server"),
-]
+# The ephemeral arm64 rpi5 worker on the minipc cluster — taint repels by
+# default, board label is the affinity target. OBS opts in (stage only) ONLY
+# while it's a software encoder; a VAAPI OBS must stay on the MS-01's iGPU, so
+# the i915 claim + this affinity are mutually exclusive (see the gate below).
+_RPI5_TAINT_KEY = "dana.lol/rpi5"
+_RPI5_BOARD_LABEL = "dana.lol/board"
+_RPI5_BOARD_VALUE = "rpi5"
+
+
+def _obj(
+    scope: Construct,
+    id: str,
+    *,
+    api_version: str,
+    kind: str,
+    name: str,
+    namespace: str,
+    labels: dict | None = None,
+    annotations: dict | None = None,
+    **body,
+):
+    """ApiObject takes only apiVersion/kind/metadata as props; other top-level
+    keys (spec, data, …) land via JsonPatch — the idiom infra's cdk8s, the
+    console, and the gateway all use for literal specs. labels/annotations are
+    omitted from metadata when None (the ExternalSecret + Ingresses carry none,
+    matching the original render)."""
+    metadata = {"name": name, "namespace": namespace}
+    if labels:
+        metadata["labels"] = labels
+    if annotations:
+        metadata["annotations"] = annotations
+    obj = cdk8s.ApiObject(
+        scope, id, api_version=api_version, kind=kind, metadata=metadata
+    )
+    for key, value in body.items():
+        obj.add_json_patch(cdk8s.JsonPatch.add(f"/{key}", value))
+    return obj
+
+
+def _prefer_rpi5_affinity() -> dict:
+    return {
+        "nodeAffinity": {
+            "preferredDuringSchedulingIgnoredDuringExecution": [
+                {
+                    "weight": 100,
+                    "preference": {
+                        "matchExpressions": [
+                            {
+                                "key": _RPI5_BOARD_LABEL,
+                                "operator": "In",
+                                "values": [_RPI5_BOARD_VALUE],
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+    }
+
+
+def _prefer_rpi5_tolerations() -> list[dict]:
+    return [{"key": _RPI5_TAINT_KEY, "operator": "Exists", "effect": "NoSchedule"}]
 
 
 class ObsInstance(Construct):
@@ -37,249 +98,248 @@ class ObsInstance(Construct):
         platform: str,  # "twitch" | "youtube"
         *,
         env: EnvConfig,
-        streaming: bool = False,  # create the stream-key ExternalSecret
+        streaming: bool = False,  # emit the stream-key ExternalSecret
         stream_key_sm: str | None = None,  # SM path, e.g. k8s/obs/twitch-stream-key
         extra_config: dict[str, str] | None = None,
     ):
-        c = load_contract()
-        name = app_name("obs", platform)  # obs-twitch / obs-youtube
+        name = f"obs-{platform}"
         super().__init__(scope, name)
+        ns = env.namespace
 
         labels = {
             "app": name,
             "app.kubernetes.io/name": "obs",
             "app.kubernetes.io/instance": name,
-            "app.kubernetes.io/part-of": "tripbot",
+            "app.kubernetes.io/part-of": PART_OF,
         }
-        ns = env.namespace or None
 
-        # --- ConfigMap (obs-config-<platform>) ---
+        # --- ConfigMap ---
         data = {
-            "DASHCAM_RTSP_URL": c.dashcam_rtsp_url(platform),
-            "ONSCREENS_URL_BASE": c.onscreens_url_base(platform),
-            "VLC_URL_BASE": c.vlc_url_base(platform),
+            "DASHCAM_RTSP_URL": contract.dashcam_rtsp_url(platform),
+            "ONSCREENS_URL_BASE": contract.onscreens_url_base(platform),
+            "VLC_URL_BASE": contract.vlc_url_base(platform),
             "OBS_WEBSOCKET_PASSWD": "adanalife",
             "OBS_QUALITY_PRESET": env.obs_quality,
             "OBS_STREAM_ENCODER": env.obs_encoder,
             **(extra_config or {}),
         }
         cm_name = f"{name}-config"
-        k8s.KubeConfigMap(
+        _obj(
             self,
             "config",
-            metadata=k8s.ObjectMeta(name=cm_name, namespace=ns, labels=labels),
+            api_version="v1",
+            kind="ConfigMap",
+            name=cm_name,
+            namespace=ns,
+            labels=labels,
             data=data,
         )
         cfg_hash = hashlib.sha256(
             json.dumps(data, sort_keys=True).encode()
         ).hexdigest()[:10]
 
-        # --- stream-key Secret/ExternalSecret (streaming toggle) ---
+        # --- stream-key ExternalSecret (streaming toggle) ---
         # twitch keeps the shared base name `obs-stream-key`; youtube gets a
         # distinct name so a twitch stream:on can't leak its key into youtube.
         secret_name = "obs-stream-key" if platform == "twitch" else f"{name}-stream-key"
         if streaming and stream_key_sm:
-            self._external_secret(secret_name, stream_key_sm, ns, labels)
+            _obj(
+                self,
+                "stream-key",
+                api_version="external-secrets.io/v1",
+                kind="ExternalSecret",
+                name=secret_name,
+                namespace=ns,
+                spec={
+                    "refreshInterval": "1h",
+                    "secretStoreRef": {
+                        "name": "aws-secretsmanager",
+                        "kind": "SecretStore",
+                    },
+                    "target": {"name": secret_name, "creationPolicy": "Owner"},
+                    "data": [
+                        {
+                            "secretKey": "STREAM_KEY",
+                            "remoteRef": {"key": stream_key_sm},
+                        }
+                    ],
+                },
+            )
 
-        env_from = [
-            k8s.EnvFromSource(config_map_ref=k8s.ConfigMapEnvSource(name=cm_name)),
-            # optional so the pod boots idle (VNC-only) when the Secret is absent.
-            k8s.EnvFromSource(
-                secret_ref=k8s.SecretEnvSource(name=secret_name, optional=True)
-            ),
-        ]
-
-        # --- resources (+ iGPU on GPU envs) ---
-        # The CPU request is the CFS weight under contention — prod sizes it
-        # for real (env.obs_cpu_request) so co-tenant bursts can't starve the
-        # encoder (the 2026-06-11 prod-stutter incident).
-        requests = {
-            "cpu": k8s.Quantity.from_string(env.obs_cpu_request),
-            "memory": k8s.Quantity.from_string("512Mi"),
-        }
-        limits = {"memory": k8s.Quantity.from_string("3Gi")}
-        # iGPU claim gated on (gpu and obs_gpu) — an env can drop just OBS's claim
-        # (env.obs_gpu=False) to stop being a live VAAPI consumer on the shared
-        # iGPU while still streaming via software x264 (env.obs_encoder).
+        # --- resources (+ iGPU claim on GPU envs) ---
+        # The CPU request is the CFS weight under contention — prod sizes it for
+        # real so co-tenant bursts can't starve the encoder.
+        requests: dict[str, str] = {"cpu": env.obs_cpu_request, "memory": "512Mi"}
+        limits: dict[str, str] = {"memory": "3Gi"}
         obs_uses_gpu = env.gpu and env.obs_gpu
         if obs_uses_gpu:
-            requests["gpu.intel.com/i915"] = k8s.Quantity.from_string("1")
-            limits["gpu.intel.com/i915"] = k8s.Quantity.from_string("1")
+            requests["gpu.intel.com/i915"] = "1"
+            limits["gpu.intel.com/i915"] = "1"
 
-        container = k8s.Container(
-            name="obs",
-            image=f"adanalife/obs:{env.tag_for('obs')}",
-            image_pull_policy=env.pull_policy_for("obs"),
-            security_context=k8s.SecurityContext(
-                allow_privilege_escalation=False,
-                capabilities=k8s.Capabilities(drop=["ALL"]),
-            ),
-            ports=[
-                k8s.ContainerPort(name=n, container_port=c.port(p)) for n, p in _PORTS
+        container = {
+            "name": "obs",
+            "image": f"{IMAGE}:{env.tag_for('obs')}",
+            "imagePullPolicy": env.pull_policy_for("obs"),
+            "securityContext": {
+                "allowPrivilegeEscalation": False,
+                "capabilities": {"drop": ["ALL"]},
+            },
+            "ports": [{"name": n, "containerPort": p} for n, p in contract.PORTS],
+            "envFrom": [
+                {"configMapRef": {"name": cm_name}},
+                # optional so the pod boots idle (VNC-only) when the Secret is absent.
+                {"secretRef": {"name": secret_name, "optional": True}},
             ],
-            env_from=env_from,
-            liveness_probe=k8s.Probe(
-                exec=k8s.ExecAction(command=["/opt/obs/healthcheck.sh"]),
-                initial_delay_seconds=15,
-                period_seconds=30,
-                timeout_seconds=10,
-                failure_threshold=3,
-            ),
-            resources=k8s.ResourceRequirements(requests=requests, limits=limits),
-        )
+            "livenessProbe": {
+                "exec": {"command": ["/opt/obs/healthcheck.sh"]},
+                "initialDelaySeconds": 15,
+                "periodSeconds": 30,
+                "timeoutSeconds": 10,
+                "failureThreshold": 3,
+            },
+            "resources": {"requests": requests, "limits": limits},
+        }
 
-        k8s.KubeDeployment(
+        # Recreate: one Wayland/VNC owner, no overlapping handoff.
+        pod_spec: dict = {
+            "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
+            "containers": [container],
+        }
+        if env.priority_class:
+            pod_spec["priorityClassName"] = env.priority_class
+        # OBS joins the rpi5 worker ONLY as a software encoder (no iGPU claim);
+        # the Pi 5 has no H.264 hw encoder, so a VAAPI OBS stays on the MS-01.
+        if env.prefer_rpi5 and not obs_uses_gpu:
+            pod_spec["affinity"] = _prefer_rpi5_affinity()
+            pod_spec["tolerations"] = _prefer_rpi5_tolerations()
+
+        deployment_spec: dict = {
+            "selector": {"matchLabels": {"app": name}},
+            "strategy": {"type": "Recreate"},
+            "template": {
+                "metadata": {
+                    "labels": labels,
+                    "annotations": {CONFIG_HASH_ANNOTATION: cfg_hash},
+                },
+                "spec": pod_spec,
+            },
+        }
+        replicas = env.replicas_for(platform)
+        if replicas is not None:
+            deployment_spec["replicas"] = replicas
+
+        _obj(
             self,
             "deployment",
-            metadata=k8s.ObjectMeta(name=name, namespace=ns, labels=labels),
-            spec=k8s.DeploymentSpec(
-                replicas=env.replicas_for(platform),
-                # Recreate: one Xvfb/VNC owner, no overlapping handoff.
-                strategy=k8s.DeploymentStrategy(type="Recreate"),
-                selector=k8s.LabelSelector(match_labels={"app": name}),
-                template=k8s.PodTemplateSpec(
-                    metadata=k8s.ObjectMeta(
-                        labels=labels,
-                        annotations={"adanalife.dev/config-hash": cfg_hash},
-                    ),
-                    spec=k8s.PodSpec(
-                        security_context=k8s.PodSecurityContext(
-                            seccomp_profile=k8s.SeccompProfile(type="RuntimeDefault")
-                        ),
-                        priority_class_name=env.priority_class or None,
-                        # OBS joins the ephemeral rpi5 worker ONLY when it's a
-                        # software encoder (no iGPU claim): the Pi 5's VideoCore
-                        # VII has no H.264 hw encoder, so a VAAPI OBS must stay on
-                        # the MS-01's Iris Xe. Gated on `not obs_uses_gpu` so when
-                        # obs_gpu flips back to True the affinity drops here AND
-                        # the i915 resource claim hard-gates the pod back to the
-                        # MS-01. Stage-only via env.prefer_rpi5; see scheduling.py.
-                        affinity=prefer_rpi5_affinity()
-                        if (env.prefer_rpi5 and not obs_uses_gpu)
-                        else None,
-                        tolerations=prefer_rpi5_tolerations()
-                        if (env.prefer_rpi5 and not obs_uses_gpu)
-                        else None,
-                        containers=[container],
-                    ),
-                ),
-            ),
+            api_version="apps/v1",
+            kind="Deployment",
+            name=name,
+            namespace=ns,
+            labels=labels,
+            spec=deployment_spec,
         )
 
         # --- Service ---
-        k8s.KubeService(
+        _obj(
             self,
             "service",
-            metadata=k8s.ObjectMeta(name=name, namespace=ns, labels=labels),
-            spec=k8s.ServiceSpec(
-                type="ClusterIP",
-                selector={"app": name},
-                ports=[
-                    k8s.ServicePort(
-                        name=n,
-                        port=c.port(p),
-                        target_port=k8s.IntOrString.from_string(n),
-                    )
-                    for n, p in _PORTS
+            api_version="v1",
+            kind="Service",
+            name=name,
+            namespace=ns,
+            labels=labels,
+            spec={
+                "type": "ClusterIP",
+                "selector": {"app": name},
+                "ports": [
+                    {"name": n, "port": p, "targetPort": n} for n, p in contract.PORTS
                 ],
-            ),
+            },
         )
 
-        # --- host-access LoadBalancer (k3d-only convenience: local + dev). The
-        # legacy obs-host VNC Service, now per-platform (obs-twitch-host). ---
+        # --- host-access LoadBalancer (k3d/local convenience; no metadata
+        # labels, matching the original render) ---
         if env.cluster in ("local", "k3d"):
-            k8s.KubeService(
+            _obj(
                 self,
                 "host-access",
-                metadata=k8s.ObjectMeta(name=f"{name}-host", namespace=ns),
-                spec=k8s.ServiceSpec(
-                    type="LoadBalancer",
-                    selector={"app": name},
-                    ports=[
-                        k8s.ServicePort(
-                            name="vnc",
-                            port=5902,
-                            target_port=k8s.IntOrString.from_string("vnc"),
-                        )
-                    ],
-                ),
+                api_version="v1",
+                kind="Service",
+                name=f"{name}-host",
+                namespace=ns,
+                spec={
+                    "type": "LoadBalancer",
+                    "selector": {"app": name},
+                    "ports": [{"name": "vnc", "port": 5902, "targetPort": "vnc"}],
+                },
             )
 
-        # --- Ingress (noVNC) — only where the env publishes DNS. Overlay-added,
-        # so no metadata labels (matches the kustomize render). ---
+        # --- Ingress (noVNC) — only where the env publishes DNS (no labels) ---
         if env.dns_base:
             self._ingress(name, env, ns)
         if env.tailscale and env.dns_base:
             self._tailscale_ingress(name, env, ns)
 
-    # ---- helpers ----
-    def _external_secret(self, secret_name, sm_path, ns, labels):
-        # Stream-key ExternalSecret via the shared typed builder. Overlay-added
-        # (prod stream-key), so no metadata labels (matches the render).
-        from adanalife_k8s.eso import ESData, external_secret
-
-        external_secret(
-            self,
-            "stream-key",
-            name=secret_name,
-            namespace=ns,
-            creation_policy="Owner",
-            data=[ESData("STREAM_KEY", sm_path)],
-        )
-
-    def _ingress(self, name, env: EnvConfig, ns):
+    def _ingress(self, name: str, env: EnvConfig, ns: str):
         host = f"{name}.{env.dns_base}"
         ann = {"external-dns.alpha.kubernetes.io/hostname": host}
         # minipc envs (prod/stage) get real TLS via the namespaced Route53 issuer;
-        # dev is HTTP-only (matches the legacy dev overlay).
+        # dev is HTTP-only.
         tls = env.cluster == "minipc"
         if tls:
             ann["cert-manager.io/issuer"] = "letsencrypt-route53"
-        backend = k8s.IngressBackend(
-            service=k8s.IngressServiceBackend(
-                name=name, port=k8s.ServiceBackendPort(name="novnc")
-            )
-        )
-        k8s.KubeIngress(
+        spec: dict = {
+            "ingressClassName": "traefik",
+            "rules": [
+                {
+                    "host": host,
+                    "http": {
+                        "paths": [
+                            {
+                                "path": "/",
+                                "pathType": "Prefix",
+                                "backend": {
+                                    "service": {
+                                        "name": name,
+                                        "port": {"name": "novnc"},
+                                    }
+                                },
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+        if tls:
+            spec["tls"] = [{"hosts": [host], "secretName": f"{name}-tls"}]
+        _obj(
             self,
             "ingress",
-            metadata=k8s.ObjectMeta(name=name, namespace=ns, annotations=ann),
-            spec=k8s.IngressSpec(
-                ingress_class_name="traefik",
-                tls=[k8s.IngressTls(hosts=[host], secret_name=f"{name}-tls")]
-                if tls
-                else None,
-                rules=[
-                    k8s.IngressRule(
-                        host=host,
-                        http=k8s.HttpIngressRuleValue(
-                            paths=[
-                                k8s.HttpIngressPath(
-                                    path="/", path_type="Prefix", backend=backend
-                                )
-                            ]
-                        ),
-                    )
-                ],
-            ),
+            api_version="networking.k8s.io/v1",
+            kind="Ingress",
+            name=name,
+            namespace=ns,
+            annotations=ann,
+            spec=spec,
         )
 
-    def _tailscale_ingress(self, name, env: EnvConfig, ns):
+    def _tailscale_ingress(self, name: str, env: EnvConfig, ns: str):
         short = env.dns_base.split(".")[0]  # prod / stage / dev
-        k8s.KubeIngress(
+        _obj(
             self,
             "ts-ingress",
-            metadata=k8s.ObjectMeta(name=f"{name}-ts", namespace=ns),
-            spec=k8s.IngressSpec(
-                ingress_class_name="tailscale",
-                default_backend=k8s.IngressBackend(
-                    service=k8s.IngressServiceBackend(
-                        name=name,
-                        port=k8s.ServiceBackendPort(
-                            number=load_contract().port("obs_novnc")
-                        ),
-                    )
-                ),
-                tls=[k8s.IngressTls(hosts=[f"{name}-{short}"])],
-            ),
+            api_version="networking.k8s.io/v1",
+            kind="Ingress",
+            name=f"{name}-ts",
+            namespace=ns,
+            spec={
+                "ingressClassName": "tailscale",
+                "defaultBackend": {
+                    "service": {
+                        "name": name,
+                        "port": {"number": contract.NOVNC_PORT},
+                    }
+                },
+                "tls": [{"hosts": [f"{name}-{short}"]}],
+            },
         )
