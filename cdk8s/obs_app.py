@@ -141,9 +141,7 @@ class ObsInstance(Construct):
         # --- stream-key ExternalSecret (streaming toggle) ---
         # twitch keeps the shared base name `obs-stream-key`; youtube gets a
         # distinct name so a twitch stream:on can't leak its key into youtube.
-        secret_name = (
-            "obs-stream-key" if platform == "twitch" else f"{name}-stream-key"
-        )
+        secret_name = "obs-stream-key" if platform == "twitch" else f"{name}-stream-key"
         if streaming and stream_key_sm:
             _obj(
                 self,
@@ -186,9 +184,7 @@ class ObsInstance(Construct):
                 "allowPrivilegeEscalation": False,
                 "capabilities": {"drop": ["ALL"]},
             },
-            "ports": [
-                {"name": n, "containerPort": p} for n, p in contract.PORTS
-            ],
+            "ports": [{"name": n, "containerPort": p} for n, p in contract.PORTS],
             "envFrom": [
                 {"configMapRef": {"name": cm_name}},
                 # optional so the pod boots idle (VNC-only) when the Secret is absent.
@@ -256,8 +252,7 @@ class ObsInstance(Construct):
                 "type": "ClusterIP",
                 "selector": {"app": name},
                 "ports": [
-                    {"name": n, "port": p, "targetPort": n}
-                    for n, p in contract.PORTS
+                    {"name": n, "port": p, "targetPort": n} for n, p in contract.PORTS
                 ],
             },
         )
@@ -275,9 +270,7 @@ class ObsInstance(Construct):
                 spec={
                     "type": "LoadBalancer",
                     "selector": {"app": name},
-                    "ports": [
-                        {"name": "vnc", "port": 5902, "targetPort": "vnc"}
-                    ],
+                    "ports": [{"name": "vnc", "port": 5902, "targetPort": "vnc"}],
                 },
             )
 

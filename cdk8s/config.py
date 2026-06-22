@@ -9,7 +9,7 @@ the split to guarantee parity.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
@@ -45,7 +45,9 @@ class EnvConfig:
     obs_quality: str = "low"  # low | high
     obs_cpu_request: str = "200m"
     priority_class: str = ""  # prod-stream on prod; "" elsewhere
-    prefer_rpi5: bool = False  # bias to the rpi5 worker (only when OBS is software-encoded)
+    prefer_rpi5: bool = (
+        False  # bias to the rpi5 worker (only when OBS is software-encoded)
+    )
     tailscale: bool = False  # emit the tailscale Ingress alongside the traefik one
 
     def tag_for(self, component: str) -> str:
