@@ -1,6 +1,6 @@
 name: obs-base
 # Bakes ghcr.io/adanalife/obs-cef-base:arm64-<OBS>-<CEF> + arm64-latest, which
-# Dockerfile.arm64 then COPYs the OBS install tree out of. This is a ~90-min
+# Dockerfile.arm64 then copies the OBS install tree out of. This is a ~90-min
 # arm64 CEF compile, so it must only run when it has to.
 #
 # Scoped to develop/master pushes that touch the base Dockerfile or this

@@ -19,7 +19,7 @@ FROM ghcr.io/adanalife/obs-cef-base:arm64-32.1.2-6533 AS builder
 # seamless-looping car-sound FLACs with numpy/scipy + ffmpeg so those generators
 # never land in the final image. Reuses the already-mirrored ubuntu base (apt
 # ships python3-numpy/scipy + ffmpeg), no extra GHCR mirror to maintain. The
-# final stage COPYs in only the resulting FLAC bytes. Identical to the amd64
+# final stage copies in only the resulting FLAC bytes. Identical to the amd64
 # Dockerfile's `carhum` stage. See carhum/render-variants.sh.
 # =============================================================================
 FROM ghcr.io/adanalife/mirror/ubuntu:24.04 AS carhum

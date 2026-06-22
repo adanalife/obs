@@ -32,7 +32,7 @@ processes:
 ## Layout
 
 | Path | What |
-|---|---|
+| --- | --- |
 | `Dockerfile` | amd64 image (OBS from the obsproject PPA) |
 | `Dockerfile.arm64` | arm64 image (OBS from source, via the CEF base below) |
 | `Dockerfile.arm64-base` | the arm64 CEF compile base → `ghcr.io/adanalife/obs-cef-base` |
@@ -62,7 +62,7 @@ The deployment sets these at runtime (see `cdk8s/`); the image runs headless
 without them (the healthcheck only needs OBS + the Wayland session up):
 
 | Env var | Purpose |
-|---|---|
+| --- | --- |
 | `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |
