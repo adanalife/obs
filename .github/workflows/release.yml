@@ -58,10 +58,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Per-arch tags get a -<arch> suffix so the manifest job can combine them
-      # into a multi-arch list under the un-suffixed tag. latest=true so each arch
-      # publishes latest-<arch> too — the manifest job (also latest=true) stitches
-      # the un-suffixed :latest from them; without it the manifest step dies on
-      # `latest-amd64: not found`.
+      # into a multi-arch list under the un-suffixed tag. onlatest=true applies
+      # the suffix to the `latest` tag too, so each arch publishes latest-<arch>
+      # — the manifest job (also latest=true) stitches the un-suffixed :latest
+      # from them. Without onlatest=true the suffix skips `latest` (each leg pushes
+      # a bare single-arch :latest and no latest-<arch>), so the manifest step dies
+      # on `latest-amd64: not found`.
       - name: Generate tags
         id: meta
         uses: docker/metadata-action@v6
@@ -69,7 +71,7 @@ jobs:
           images: ghcr.io/adanalife/obs
           flavor: |
             latest=true
-            suffix=-${{ matrix.arch }}
+            suffix=-${{ matrix.arch }},onlatest=true
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern=v{{major}}.{{minor}}
