@@ -84,9 +84,12 @@ envsubst < /opt/obs/config/Tripbot.json.tmpl > "$OBS_HOME/basic/scenes/Tripbot.j
 # mutually-exclusive background-audio sources, and exactly one is stripped per
 # platform before OBS loads the collection:
 #
-#   - "Groove Salad Classic" (SomaFM ffmpeg_source) plays licensed music that
-#     trips YouTube's Content ID and earns copyright strikes. Twitch tolerates
-#     it, so it stays on Twitch and is stripped on YouTube.
+#   - "Groove Salad Classic" (SomaFM ffmpeg_source) streams internet radio whose
+#     music is NOT cleared for our rebroadcast: it reliably trips YouTube's
+#     Content ID and earns copyright strikes there, which is why YouTube uses
+#     "Car Hum" instead. Twitch hasn't struck it so far, so it stays on Twitch —
+#     but that's empirical tolerance, not a license, and could draw a DMCA claim
+#     at any time. Stripped on YouTube.
 #   - "Car Hum" (a locally-generated, license-clean drone — see
 #     carhum/) is the YouTube background bed in its place, and is
 #     stripped on Twitch so the two don't both play.
