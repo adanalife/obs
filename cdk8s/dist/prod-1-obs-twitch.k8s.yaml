@@ -24,7 +24,7 @@ metadata:
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: aws-secretsmanager
+    name: aws-parameterstore
     kind: SecretStore
   target:
     name: obs-stream-key
@@ -32,7 +32,7 @@ spec:
   data:
     - secretKey: STREAM_KEY
       remoteRef:
-        key: k8s/obs/twitch-stream-key
+        key: /k8s/obs/twitch-stream-key
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -153,7 +153,7 @@ class ObsInstance(Construct):
                 spec={
                     "refreshInterval": "1h",
                     "secretStoreRef": {
-                        "name": "aws-secretsmanager",
+                        "name": "aws-parameterstore",
                         "kind": "SecretStore",
                     },
                     "target": {"name": secret_name, "creationPolicy": "Owner"},
