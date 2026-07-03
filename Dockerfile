@@ -24,7 +24,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # tarball).
 #
 # msttcorefonts wants EULA pre-acceptance for unattended install. Trebuchet
-# MS is referenced by onscreen text sources.
+# MS is referenced by onscreen text sources. fonts-noto-color-emoji is the
+# fontconfig fallback for emoji in the browser-source overlays (the rotator
+# live-location line uses 📍) — without it CEF renders tofu boxes.
 #
 # intel-media-va-driver-non-free + vainfo enable hardware H.264/H.265
 # encode via VAAPI on Intel iGPU hosts (Gen 11+ Iris Xe / UHD 770).
@@ -63,6 +65,7 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
          intel-media-va-driver-non-free \
          vainfo \
          fonts-dejavu-core \
+         fonts-noto-color-emoji \
          ttf-mscorefonts-installer \
          python3 \
          python3-venv \
