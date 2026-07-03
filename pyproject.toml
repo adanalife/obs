@@ -4,7 +4,7 @@
 # and tripbot-console's plain-python cdk8s setup.
 [project]
 name = "obs-deploy"
-version = "1.0.2"
+version = "1.0.3"
 description = "cdk8s deploy authoring for the adanalife OBS image (not the image itself)"
 requires-python = ">=3.13"
 dependencies = []

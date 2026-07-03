@@ -30,7 +30,9 @@ def main() -> None:
                 platform,
                 env=env,
                 streaming=streaming,
-                stream_key_sm=(f"k8s/obs/{platform}-stream-key" if streaming else None),
+                stream_key_sm=(
+                    f"/k8s/obs/{platform}-stream-key" if streaming else None
+                ),
                 extra_config=(
                     {"STREAM_PLATFORM": "youtube"} if platform == "youtube" else None
                 ),
