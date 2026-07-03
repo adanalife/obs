@@ -38,6 +38,7 @@ processes:
 | `Dockerfile.arm64-base` | the arm64 CEF compile base → `ghcr.io/adanalife/obs-cef-base` |
 | `config/` | OBS scene + profile templates (`*.tmpl` rendered by `entrypoint.sh`) |
 | `script/` | in-image startup scripts (sway, wayvnc, noVNC, obs-server) |
+| `scripts/` | repo tooling, not baked into the image (`check-changelog-fragment.sh`, the pre-push changelog guard) — note the near-identical name to `script/` above |
 | `supervisor/` | per-process supervisord configs |
 | `bin/` | `obs-browser-refresh`, `obs-media-restart` (host/in-image Python helpers) |
 | `carhum/` | car-hum FLAC generator (build-time only) |
@@ -64,6 +65,7 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | Env var | Purpose |
 | --- | --- |
 | `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
+| `STREAM_PLATFORM` | `twitch` (default) or `youtube` — selects the ingest service and which background-audio source is stripped (`entrypoint.sh`); the youtube cdk8s overlay sets `youtube` |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |
 | `OBS_STREAM_ENCODER` | encoder selection (e.g. VAAPI vs x264) |
