@@ -103,6 +103,7 @@ jobs:
   manifest:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Login to GHCR
         uses: docker/login-action@v4
@@ -133,6 +134,7 @@ jobs:
   github-release:
     needs: manifest
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -146,6 +148,7 @@ jobs:
   notify:
     needs: manifest
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Discord notification
         uses: Ilshidur/action-discord@0.4.0
