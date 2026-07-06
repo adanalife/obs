@@ -22,9 +22,8 @@ jobs:
       #
       # The tag is pushed with the plain GITHUB_TOKEN and release.yml is then
       # dispatched explicitly — a GITHUB_TOKEN-pushed tag doesn't fire workflow
-      # `push: tags` triggers, and the org PAT tripbot uses can't be shared with
-      # a private repo on the free plan. workflow_dispatch is the documented
-      # exception to the no-recursive-trigger rule. No PAT to provision.
+      # `push: tags` triggers. workflow_dispatch is the documented exception to
+      # the no-recursive-trigger rule. No PAT to provision.
       - name: Bump version and push tag
         id: tag
         uses: anothrNick/github-tag-action@1

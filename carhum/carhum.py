@@ -24,15 +24,16 @@ from scipy import signal
 # Character presets — each is a base engine pitch plus the mix weights of the
 # four layers (sub rumble / road roar / cabin air / engine drone). They give
 # four audibly distinct "car" beds to cycle between on stream. `--base-hz`
-# still wins if passed explicitly. The un-presetted default ("classic") keeps
-# the original voicing so existing standalone renders are unchanged.
+# still wins if passed explicitly. The un-presetted default ("classic") is the
+# baseline voicing (DEFAULT_WEIGHTS + 52 Hz); keep it stable so standalone
+# renders stay reproducible.
 DEFAULT_WEIGHTS = {"sub": 0.55, "road": 1.00, "air": 0.12, "eng": 0.16}
 PRESETS = {
     # stopped/slow: low rumble, engine forward, little road roar.
     "idle": {"base_hz": 40, "sub": 0.55, "road": 0.70, "air": 0.10, "eng": 0.30},
     # fast tarmac: road roar dominant, bright cabin air, engine sunk.
     "highway": {"base_hz": 60, "sub": 0.60, "road": 1.15, "air": 0.18, "eng": 0.10},
-    # balanced mid — closest to the original "low engine" voicing.
+    # balanced mid — closest to the classic "low engine" voicing.
     "backroad": {"base_hz": 50, "sub": 0.55, "road": 1.00, "air": 0.14, "eng": 0.18},
     # airy/open: more cabin hiss up top, softer road, gentle engine.
     "mountain": {"base_hz": 46, "sub": 0.50, "road": 0.85, "air": 0.22, "eng": 0.14},

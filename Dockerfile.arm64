@@ -43,11 +43,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # is used by some onscreen text scene-sources.
 #
 # Display stack: sway (headless Wayland compositor) + wayvnc (Wayland VNC
-# server). Replaces the previous Xvfb / fluxbox / x11vnc trio so OBS's
-# OpenGL hits the iGPU instead of falling back to Mesa llvmpipe. supervisor
-# manages sway/wayvnc/obs/browser-refresh as separate programs with
-# Wayland-socket-wait dependency on sway. See Dockerfile (amd64) for the
-# longer comment.
+# server) — keeps OBS's OpenGL on the iGPU instead of falling back to
+# Mesa llvmpipe. supervisor manages sway/wayvnc/obs/noVNC/browser-refresh
+# as separate programs with Wayland-socket-wait dependency on sway. See
+# Dockerfile (amd64) for the longer comment.
 RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" \
       | debconf-set-selections \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -79,8 +78,8 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
     && rm -rf /var/lib/apt/lists/*
 
 # obsws-python (in a venv to stay clear of PEP 668 system-managed python)
-# powers the hourly browser-source refresh that the entrypoint kicks off
-# as a workaround for CEF's per-frame memory leak. websockify rides in the
+# powers the hourly browser-source refresh — a supervisor program that
+# works around CEF's per-frame memory leak. websockify rides in the
 # same venv — it bridges the browser's WebSocket to wayvnc's TCP :5900 for
 # the noVNC client.
 RUN python3 -m venv /opt/obs/venv \

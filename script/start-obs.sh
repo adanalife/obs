@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Supervisor program: launch OBS as a Wayland-native Qt client.
 #
-# Replaces the entrypoint's previous `exec obs ...` line. Waits for sway's
-# Wayland socket before starting — OBS's Qt6 platform plugin can't connect
-# to the compositor before it's up.
+# Waits for sway's Wayland socket before starting — OBS's Qt6 platform
+# plugin can't connect to the compositor before it's up.
 set -euo pipefail
 
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-root}"
@@ -27,9 +26,9 @@ if [[ ! -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]]; then
   exit 1
 fi
 
-# OBS args mirror the previous entrypoint invocation. --startstreaming
-# only makes sense when service.json was rendered (STREAM_KEY was set);
-# entrypoint.sh writes a sentinel into the obs profile dir to signal that.
+# --startstreaming only makes sense when a stream target is configured;
+# entrypoint.sh renders service.json into the profile dir only when
+# STREAM_KEY is set, so key off that file's existence.
 obs_args=(--disable-shutdown-check --collection 'Tripbot' --profile 'ADanaLife' --scene 'Main')
 
 OBS_HOME="${HOME:-/root}/.config/obs-studio"

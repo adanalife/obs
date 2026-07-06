@@ -8,9 +8,7 @@ per-env overlays (GPU claim, encoder, quality, stream-key toggle, ingress) are
 data on EnvConfig.
 
 Everything is cdk8s.ApiObject with literal specs — the same idiom as
-platform-gateway and tripbot-console. Rewritten from the typed `imports.k8s`
-construct it was extracted from; the synth output is diffed against the original
-manifests to guarantee deploy parity.
+platform-gateway and tripbot-console.
 """
 
 from __future__ import annotations
@@ -51,8 +49,8 @@ def _obj(
     """ApiObject takes only apiVersion/kind/metadata as props; other top-level
     keys (spec, data, …) land via JsonPatch — the idiom infra's cdk8s, the
     console, and the gateway all use for literal specs. labels/annotations are
-    omitted from metadata when None (the ExternalSecret + Ingresses carry none,
-    matching the original render)."""
+    omitted from metadata when None (the ExternalSecret + Ingresses carry
+    none)."""
     metadata = {"name": name, "namespace": namespace}
     if labels:
         metadata["labels"] = labels
@@ -258,7 +256,7 @@ class ObsInstance(Construct):
         )
 
         # --- host-access LoadBalancer (k3d/local convenience; no metadata
-        # labels, matching the original render) ---
+        # labels) ---
         if env.cluster in ("local", "k3d"):
             _obj(
                 self,

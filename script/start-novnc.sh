@@ -3,11 +3,11 @@
 # browser's WebSocket to wayvnc's TCP :5900 via websockify.
 #
 # The obs Ingress (traefik) terminates TLS and forwards plain HTTP here, so
-# websockify itself stays unencrypted in-pod. This is the access path that
-# replaces port-forwarding a native VNC client — and it works with macOS
-# Screen Sharing.app's blind spot, because noVNC speaks standard RFB rather
-# than Apple's RFB 003.889 (which neatvnc rejects at the version handshake,
-# before any security type is negotiated).
+# websockify itself stays unencrypted in-pod. This is the access path — a
+# browser instead of a port-forwarded native VNC client — and it sidesteps
+# macOS Screen Sharing.app's blind spot, because noVNC speaks standard RFB
+# rather than Apple's RFB 003.889 (which neatvnc rejects at the version
+# handshake, before any security type is negotiated).
 set -euo pipefail
 
 # Block until wayvnc is accepting on :5900 — websockify's target must be live

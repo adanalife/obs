@@ -5,8 +5,8 @@
 #
 # Display stack: sway (headless Wayland compositor on /dev/dri/card0) +
 # wayvnc (VNC server, attaches to sway) + OBS as a Wayland-native Qt6
-# client. Replaces the previous Xvfb+fluxbox+x11vnc trio so OBS's OpenGL
-# composite hits the iGPU instead of Mesa llvmpipe.
+# client — so OBS's OpenGL composite hits the iGPU instead of Mesa
+# llvmpipe (an Xvfb/X11 stack would land on the CPU rasterizer).
 set -euo pipefail
 
 echo "OBS container, tripbot version $(cat /etc/tripbot/version 2>/dev/null || echo dev) (sha: $(cat /etc/tripbot/sha 2>/dev/null || echo unknown))"
@@ -47,14 +47,14 @@ esac
 # streamEncoder.json profile below.
 #
 # Note: Advanced Output's [AdvOut] Encoder field reads the literal
-# encoder ID — no friendly-name aliases like Simple Output had. The
+# encoder ID — no friendly-name aliases (unlike Simple Output). The
 # x264 plugin registers as "obs_x264", so that's the string we write.
 export OBS_STREAM_ENCODER="${OBS_STREAM_ENCODER:-obs_x264}"
 echo "OBS stream encoder: ${OBS_STREAM_ENCODER}"
 
-# Streaming target platform. Default `twitch` preserves the original
-# hardcoded behavior exactly (service "Twitch", server "auto" — OBS
-# resolves "auto" via Twitch's ingest API at connect time). Set
+# Streaming target platform. Default `twitch` streams to Twitch
+# (service "Twitch", server "auto" — OBS resolves "auto" via Twitch's
+# ingest API at connect time). Set
 # STREAM_PLATFORM=youtube (k8s configmap in the obs-youtube overlay) to
 # point the same canvas/encoder at YouTube's RTMPS ingest. service.json.tmpl
 # consumes OBS_STREAM_SERVICE / OBS_STREAM_SERVER via envsubst below.
@@ -175,14 +175,13 @@ mkdir -p "$XDG_RUNTIME_DIR"
 chmod 0700 "$XDG_RUNTIME_DIR"
 
 # Render the wayvnc cfg into the per-pod tmpfs runtime dir. The template has
-# no env vars to substitute — auth is off (wayvnc offers RFB "None" bound to
-# the pod's localhost; access control lives at the traefik Ingress in front
-# of noVNC), so the cert generation and VNC_USERNAME/VNC_PASSWD that used to
-# render here are gone. envsubst is a passthrough copy now, kept so the cfg
-# lands at the same spot as the rest of the per-pod runtime config.
+# no env vars to substitute — auth is off (wayvnc offers RFB "None" inside
+# the pod; access control lives at the traefik Ingress in front of noVNC) —
+# so envsubst is a passthrough copy, kept so the cfg lands at the same spot
+# as the rest of the per-pod runtime config.
 envsubst < /opt/obs/config/wayvnc.cfg.tmpl > "$XDG_RUNTIME_DIR/wayvnc.cfg"
 
-# Hand off to supervisord. It manages sway, wayvnc, obs, and the hourly
-# browser-source refresh (with each program's start order + Wayland-socket
-# dependency handled in script/start-*.sh).
+# Hand off to supervisord. It manages sway, wayvnc, obs, noVNC/websockify,
+# obs-server, and the hourly browser-source refresh (with each program's
+# start order + Wayland-socket dependency handled in script/start-*.sh).
 exec supervisord -n -c /etc/supervisor/supervisord.conf

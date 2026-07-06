@@ -10,8 +10,8 @@ eventbus envelopes. If a service name or port changes in tripbot, change it here
 
 from __future__ import annotations
 
-# OBS's own container/service ports, in the order the Deployment + Service list
-# them (matches the original construct).
+# OBS's own container/service ports, in the order the Deployment + Service
+# list them.
 PORTS: list[tuple[str, int]] = [
     ("vnc", 5900),
     ("websocket", 4455),
