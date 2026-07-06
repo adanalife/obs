@@ -36,13 +36,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 # gpu.intel.com/i915 resource grant in the prod-1 overlay.
 #
 # Display stack: sway (headless Wayland compositor) + wayvnc (Wayland VNC
-# server) + qt6-wayland (Qt's Wayland QPA plugin for OBS's UI). Replaces
-# the previous Xvfb / fluxbox / x11vnc trio so OBS's OpenGL hits the iGPU
-# instead of falling back to Mesa llvmpipe (CPU rasterizer).
+# server) + qt6-wayland (Qt's Wayland QPA plugin for OBS's UI) — keeps
+# OBS's OpenGL on the iGPU instead of falling back to Mesa llvmpipe
+# (CPU rasterizer).
 #
-# supervisor manages the three (+ the browser-refresh loop) so each has
-# its own restart policy and dependency-on-Wayland-socket logic; matches
-# the VLC container's structure.
+# supervisor manages the programs (sway, wayvnc, obs, noVNC, obs-server,
+# browser-refresh) so each has its own restart policy and
+# dependency-on-Wayland-socket logic; matches the VLC container's structure.
 RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" \
       | debconf-set-selections \
     && apt-get update \
@@ -72,8 +72,8 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
     && rm -rf /var/lib/apt/lists/*
 
 # obsws-python (in a venv to stay clear of PEP 668 system-managed python)
-# powers the hourly browser-source refresh that the entrypoint kicks off
-# as a workaround for CEF's per-frame memory leak. websockify rides in the
+# powers the hourly browser-source refresh — a supervisor program that
+# works around CEF's per-frame memory leak. websockify rides in the
 # same venv — it bridges the browser's WebSocket to wayvnc's TCP :5900 for
 # the noVNC client.
 RUN python3 -m venv /opt/obs/venv \

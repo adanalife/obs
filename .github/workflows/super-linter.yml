@@ -40,8 +40,7 @@ jobs:
           #     towncrier requires the .md extension (it picks markup from it),
           #     but its `{% %}`/`[...]` syntax isn't valid markdown.
           FILTER_REGEX_EXCLUDE: '.*cdk8s/dist/.*|.*(^|/)uv\.lock$|.*(^|/)go\.sum$|.*(^|/)towncrier-template\.md$'
-          # Go is linted by reviewdog golangci-lint (linting.yml) — skip the
-          # duplicate gate (and its module/releaser siblings).
+          # No Go in this repo — skip the Go gates.
           VALIDATE_GO: false
           VALIDATE_GO_MODULES: false
           VALIDATE_GO_RELEASER: false

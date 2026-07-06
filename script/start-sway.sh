@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Supervisor program: launch the sway compositor with headless backends.
 #
-# Replaces the entrypoint's previous `Xvfb $DISPLAY -screen 0 ... &` line.
 # sway uses GBM under the hood to render directly to the iGPU's render
-# node (/dev/dri/renderD128), unlike Xvfb which is software-only.
+# node (/dev/dri/renderD128) — unlike an Xvfb stack, which is software-only.
 set -euo pipefail
 
 # Wayland sockets / runtime files live here. tmpfs at /tmp keeps the

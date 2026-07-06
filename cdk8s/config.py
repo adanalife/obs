@@ -1,10 +1,7 @@
 """Per-environment OBS deployment config.
 
 A slim, self-contained EnvConfig holding only the fields the OBS deployment
-needs — extracted from tripbot's adanalife_k8s.config.EnvConfig (which carried
-config for every workload). The per-env values reproduce tripbot's OBS overlays
-exactly; the synth output is diffed against the manifests that came over with
-the split to guarantee parity.
+needs.
 """
 
 from __future__ import annotations
@@ -75,12 +72,10 @@ ENVS: dict[str, EnvConfig] = {
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
         platforms=("twitch", "youtube"),
-        # youtube goes live unlisted: unparked (replicas=1) and streaming via
-        # VAAPI to the prod YouTube ingest (stream-key SM k8s/obs/youtube-stream-key,
-        # adanalife-prod). The two-live-encoder iGPU budget holds — prod-twitch +
-        # prod-youtube — once stage-youtube is scaled down. prod-twitch OBS stays
-        # delivered by tripbot-apps (in-tripbot build); only obs-youtube is cut
-        # over to this repo (per-platform OBS_PLATFORM_REVISIONS in infra).
+        # youtube streams unlisted: replicas=1, VAAPI to the prod YouTube
+        # ingest (stream-key SM k8s/obs/youtube-stream-key, adanalife-prod).
+        # The iGPU budget is two live encoders — prod-twitch + prod-youtube —
+        # so stage's VAAPI encoders stay scaled down.
         obs_streaming=("twitch", "youtube"),
         gpu=True,
         obs_gpu=True,

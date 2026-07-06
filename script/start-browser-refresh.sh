@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Supervisor program: hourly browser-source refresh.
 #
-# Lifted out of the entrypoint's inline `( while sleep 3600; do ...; done ) &`
-# subshell so supervisor can restart it on failure and so its logs land in
-# kubectl-logs alongside the other programs. CEF has a per-frame memory
-# leak (PR #555 capped browser-source render rate to slow the bleed, but
-# the leak is still there); refreshing every browser_source once an hour
-# drops the accumulated render state so RSS stays bounded across multi-day
-# uptimes.
+# Runs as its own supervisor program so failures get restarted and its
+# logs land in kubectl logs alongside the other programs. CEF has a
+# per-frame memory leak (the capped browser-source render rate slows the
+# bleed, but the leak is still there); refreshing every browser_source
+# once an hour drops the accumulated render state so RSS stays bounded
+# across multi-day uptimes.
 #
 # Connects via obs-websocket on localhost:4455, so it depends on OBS being
 # up and listening. supervisor's autorestart handles the case where this

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Supervisor program: serve the headless sway output over VNC on :5900.
 #
-# Replaces the entrypoint's previous `x11vnc -display :0 ...` line.
 # Waits for sway to publish its Wayland socket before launching — wayvnc
 # connects as a Wayland client and can't bootstrap before the compositor.
 set -euo pipefail
@@ -24,15 +23,9 @@ if [[ ! -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]]; then
 fi
 
 # Listen on all interfaces, port 5900 — pulled from the rendered
-# wayvnc.cfg in $XDG_RUNTIME_DIR. entrypoint.sh envsubsts the template
-# from /opt/obs/config/wayvnc.cfg.tmpl with VNC_USERNAME + VNC_PASSWD
-# before supervisord starts this program. Cert + key are also generated
-# by entrypoint.sh at the paths the cfg points at.
-#
-# enable_auth=true in the cfg unlocks the encrypted security types
-# (VeNCrypt for TigerVNC/RealVNC, Apple Diffie-Hellman for macOS Screen
-# Sharing.app via relax_encryption=true) that wayvnc's default config
-# leaves off — without enable_auth the cert paths are read-but-ignored
-# and wayvnc only offers RFB "None" (security type 1), which Screen
-# Sharing.app refuses with "Unable to communicate with localhost".
+# wayvnc.cfg in $XDG_RUNTIME_DIR (entrypoint.sh renders it from
+# /opt/obs/config/wayvnc.cfg.tmpl before supervisord starts this
+# program). Auth is off — wayvnc offers RFB "None" and nothing outside
+# the pod reaches :5900 directly; the wayvnc.cfg.tmpl header has the
+# full access-control story.
 exec wayvnc --config="$XDG_RUNTIME_DIR/wayvnc.cfg"

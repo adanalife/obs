@@ -126,9 +126,9 @@ def _fire_shutdown():
 def main() -> None:
     """Run the Flask app under supervisord (foreground, no debug/reload).
 
-    Binds to all interfaces inside the pod so the k8s Service (added in
-    the matching infra PR) can reach us at obs:8080. Port matches the
-    `EXPOSE 8080` directive in the OBS Dockerfile + the supervisor conf.
+    Binds to all interfaces inside the pod so the k8s Service can reach
+    it. Port matches the `EXPOSE 8080` directive in the OBS Dockerfile +
+    the cdk8s Service's obs-server port.
     """
     app.run(host="0.0.0.0", port=8080, debug=False, use_reloader=False)
 

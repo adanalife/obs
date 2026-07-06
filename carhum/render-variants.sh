@@ -7,8 +7,10 @@
 # Needs python3 with numpy+scipy importable and ffmpeg on PATH.
 #
 # The variant NAMES + COUNT here are a contract shared three ways:
+#   - this script (the `variants` list below)
 #   - the `carhum` builder stage + COPY in Dockerfile{,.arm64}
-#   - the carSounds registry in pkg/chatbot/carsound.go (the !carsound command)
+#   - the carSounds registry in tripbot's pkg/chatbot/carsound.go
+#     (the !carsound command)
 # Keep all three in sync when adding/removing a variant.
 set -euo pipefail
 

@@ -2,8 +2,7 @@ name: pending-release
 
 # Maintains a single standing DRAFT PR from develop -> master that shows what
 # the NEXT release would contain, so the version-bump decision can be made
-# against a real diff + changelog instead of guessed up front. Modeled on
-# bump-prs.yml's update-in-place pattern.
+# against a real diff + changelog instead of guessed up front.
 #
 # This is a staging VIEW, not a release tool: it never merges anything. To cut
 # a release: on develop run `task changelog:build VERSION=X.Y.Z` to collate the
@@ -18,9 +17,8 @@ name: pending-release
 # Once the PR is promoted out of draft (i.e. you've started cutting), this
 # workflow stops touching it, so it won't clobber a body/title you've edited.
 #
-# The PR is created via the automation GitHub App token (same as bump-prs) so
-# its pull_request events fire CI; GITHUB_TOKEN-created PRs don't trigger
-# downstream workflows.
+# The PR is created via the automation GitHub App token so its pull_request
+# events fire CI; GITHUB_TOKEN-created PRs don't trigger downstream workflows.
 
 on:
   push:
