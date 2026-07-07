@@ -25,7 +25,7 @@ class EnvConfig:
     name: str
     namespace: str
     cluster: str  # minipc | k3d | local
-    image_tag: str  # floating tag (develop | latest) for components without a pin
+    image_tag: str  # floating tag (main | latest) for components without a pin
     dns_base: str  # prod.whereisdana.today | stage… | dev…  ("" for local → no Ingress)
 
     platforms: tuple[str, ...] = ("twitch",)
@@ -89,7 +89,7 @@ ENVS: dict[str, EnvConfig] = {
         name="stage-1",
         namespace="stage-1",
         cluster="minipc",
-        image_tag="develop",
+        image_tag="main",
         dns_base="stage.whereisdana.today",
         platforms=("twitch", "youtube"),
         obs_streaming=("youtube",),
@@ -106,7 +106,7 @@ ENVS: dict[str, EnvConfig] = {
         name="development",
         namespace="development",
         cluster="k3d",
-        image_tag="develop",
+        image_tag="main",
         dns_base="dev.whereisdana.today",
         platforms=("twitch",),
         gpu=False,
