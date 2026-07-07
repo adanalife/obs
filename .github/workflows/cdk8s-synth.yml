@@ -11,8 +11,7 @@ on:
       - '.github/workflows/cdk8s-synth.yml'
   push:
     branches:
-      - master
-      - develop
+      - main
     paths:
       - 'cdk8s/**'
 

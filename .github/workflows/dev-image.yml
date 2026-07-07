@@ -1,17 +1,17 @@
-# Floating :develop image on every develop push — what stage-1 deploys
+# Floating :main image on every main push — what stage-1 deploys
 # (imagePullPolicy: Always picks up rebuilds under the tag). amd64-only: prod and
 # stage both run OBS on the amd64 minipc, so the arm64 image is only built at
-# tagged releases (release.yml), not on every develop push.
-name: release-development
+# tagged releases (release.yml), not on every main push.
+name: dev-image
 on:
   push:
     branches:
-      - develop
+      - main
 
-# Only build the newest develop merge. Cancel an in-flight build when a newer
-# develop push arrives — :develop should track HEAD.
+# Only build the newest main merge. Cancel an in-flight build when a newer
+# main push arrives — :main should track HEAD.
 concurrency:
-  group: release-development
+  group: dev-image
   cancel-in-progress: true
 
 permissions:
@@ -41,10 +41,10 @@ jobs:
           context: .
           file: Dockerfile
           platforms: linux/amd64
-          tags: ghcr.io/adanalife/obs:develop
+          tags: ghcr.io/adanalife/obs:main
           push: true
           build-args: |
-            VERSION=develop-${{ github.sha }}
+            VERSION=main-${{ github.sha }}
             SHA=${{ github.sha }}
           cache-from: type=gha,scope=obs-amd64
           cache-to: type=gha,mode=max,scope=obs-amd64
