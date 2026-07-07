@@ -20,7 +20,7 @@ jobs:
         with:
           python-version-file: .tool-versions
       # no-commit-to-branch guards local commits; in CI the checkout is the
-      # branch itself, so the hook would false-positive on master/develop.
+      # branch itself, so the hook would false-positive on main.
       - uses: pre-commit/action@v3.0.1
         env:
           SKIP: no-commit-to-branch

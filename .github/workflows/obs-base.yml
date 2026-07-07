@@ -3,7 +3,7 @@ name: obs-base
 # Dockerfile.arm64 then copies the OBS install tree out of. This is a ~90-min
 # arm64 CEF compile, so it must only run when it has to.
 #
-# Scoped to develop/master pushes that touch the base Dockerfile or this
+# Scoped to main pushes that touch the base Dockerfile or this
 # workflow. The branches filter is load-bearing: GitHub ignores `paths` filters
 # on tag pushes, so without it every `v*` release tag would bypass the path
 # filter and trigger a full rebake. Manual dispatch stays available for re-bakes
@@ -13,8 +13,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - develop
-      - master
+      - main
     paths:
       - 'Dockerfile.arm64-base'
       - '.github/workflows/obs-base.yml'
