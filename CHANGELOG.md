@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v1.0.5] — 2026-07-12
+
+### Removed
+
+- Removed the flag onscreen element from the scene config — it was rendering a 404 page on the stream. ([#26](https://github.com/adanalife/obs/pull/26))
+
 ## [v1.0.4] — 2026-07-11
 
 ### Changed
