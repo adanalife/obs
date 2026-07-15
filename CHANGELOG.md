@@ -13,6 +13,14 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v1.1.0] — 2026-07-15
+
+### Changed
+
+- **Changelog fragments can be created without knowing the PR number** — write a `+`-placeholder fragment and CI numbers it on push. ([#28](https://github.com/adanalife/obs/pull/28))
+- obs-youtube reads the dashcam feed from the MediaMTX relay (`rtsp://mediamtx-youtube:8554/dashcam`, published into by playout) instead of vlc-server; twitch stays on vlc-server until its playout re-cutover. ([#30](https://github.com/adanalife/obs/pull/30))
+- Per-platform video bitrate override (`obs_video_bitrate_kbps` in cdk8s → `OBS_VIDEO_BITRATE` env; quality presets now default-if-unset). prod youtube is capped at 3000 kbps — below platform max, deliberately: two full-rate RTMP uploads saturate the home uplink and stutter the viewing path. Lift the cap when the uplink has headroom. ([#32](https://github.com/adanalife/obs/pull/32))
+
 ## [v1.0.5] — 2026-07-12
 
 ### Removed
