@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v1.2.0] — 2026-07-15
+
+### Changed
+
+- Lifted the prod YouTube 3000 kbps bitrate cap — back to the `high` preset's 6000 kbps. The cap targeted a suspected uplink bottleneck; the actual stutter cause was iGPU VAAPI-slot contention from stray stage OBS instances. ([#34](https://github.com/adanalife/obs/pull/34))
+
 ## [v1.1.0] — 2026-07-15
 
 ### Changed
