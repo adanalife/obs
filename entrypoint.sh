@@ -22,19 +22,19 @@ case "${OBS_QUALITY_PRESET:-high}" in
     export OBS_OUTPUT_WIDTH=1280
     export OBS_OUTPUT_HEIGHT=720
     export OBS_FPS_COMMON=30
-    export OBS_VIDEO_BITRATE=1500
+    export OBS_VIDEO_BITRATE="${OBS_VIDEO_BITRATE:-1500}"
     export OBS_AUDIO_BITRATE=128
     export OBS_ENCODER_PRESET=ultrafast
-    echo "OBS quality preset: low (720p30, 1500 kbps)"
+    echo "OBS quality preset: low (720p30, ${OBS_VIDEO_BITRATE} kbps)"
     ;;
   *)
     export OBS_OUTPUT_WIDTH=1920
     export OBS_OUTPUT_HEIGHT=1080
     export OBS_FPS_COMMON=60
-    export OBS_VIDEO_BITRATE=6000
+    export OBS_VIDEO_BITRATE="${OBS_VIDEO_BITRATE:-6000}"
     export OBS_AUDIO_BITRATE=160
     export OBS_ENCODER_PRESET=veryfast
-    echo "OBS quality preset: high (1080p60, 6000 kbps)"
+    echo "OBS quality preset: high (1080p60, ${OBS_VIDEO_BITRATE} kbps)"
     ;;
 esac
 
