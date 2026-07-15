@@ -23,10 +23,15 @@ NOVNC_PORT = 6080
 # tripbot feeders OBS reaches (per-platform Services in the same namespace).
 _VLC_RTSP_PORT = 8554
 _VLC_HTTP_PORT = 8080
+_MEDIAMTX_RTSP_PORT = 8554
 _ONSCREENS_HTTP_PORT = 8080
 
 
 def dashcam_rtsp_url(platform: str) -> str:
+    # youtube reads the per-platform MediaMTX relay (playout publishes into
+    # it); twitch still reads vlc-server until its playout re-cutover.
+    if platform == "youtube":
+        return f"rtsp://mediamtx-{platform}:{_MEDIAMTX_RTSP_PORT}/dashcam"
     return f"rtsp://vlc-{platform}:{_VLC_RTSP_PORT}/dashcam"
 
 

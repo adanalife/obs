@@ -9,7 +9,7 @@ metadata:
   name: obs-youtube-config
   namespace: stage-1
 data:
-  DASHCAM_RTSP_URL: rtsp://vlc-youtube:8554/dashcam
+  DASHCAM_RTSP_URL: rtsp://mediamtx-youtube:8554/dashcam
   ONSCREENS_URL_BASE: http://onscreens-youtube:8080
   VLC_URL_BASE: http://vlc-youtube:8080
   OBS_WEBSOCKET_PASSWD: adanalife
@@ -59,7 +59,7 @@ spec:
         app.kubernetes.io/instance: obs-youtube
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: 1aa871d64c
+        adanalife.dev/config-hash: a5e0831041
     spec:
       securityContext:
         seccompProfile:
