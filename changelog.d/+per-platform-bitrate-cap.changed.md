@@ -1,0 +1,1 @@
+Per-platform video bitrate override (`obs_video_bitrate_kbps` in cdk8s → `OBS_VIDEO_BITRATE` env; quality presets now default-if-unset). prod youtube is capped at 3000 kbps — below platform max, deliberately: two full-rate RTMP uploads saturate the home uplink and stutter the viewing path. Lift the cap when the uplink has headroom.
