@@ -1,11 +1,15 @@
 # Changelog fragments, assembled by towncrier at release time.
 #
 # Every feature/fix PR drops a fragment in changelog.d/ named <PR>.<type>.md
-# (e.g. 42.fixed.md). Run via uvx — no project dependency:
+# (e.g. 42.fixed.md). You rarely know the PR number when branching, so scaffold
+# a "+" placeholder (towncrier's issue-less convention) and let CI number it:
 #
-#   uvx towncrier create --config towncrier.toml 42.fixed.md   # scaffold
-#   task changelog:preview                                     # pending notes
-#   task changelog:build VERSION=1.2.0                         # collate
+#   task changelog:add TYPE=fixed          # writes changelog.d/+fixed.fixed.md
+#   task changelog:preview                 # see the pending notes
+#   task changelog:build VERSION=1.2.0     # collate into CHANGELOG.md
+#
+# On push, changelog-number.yml renames +<slug>.<type>.md -> <PR#>.<type>.md so
+# the release changelog links each entry to its PR.
 #
 # Sections are the standard Keep-a-Changelog types (Added / Changed / Fixed /
 # …), modeled as towncrier "types". The optional `summary` type renders as the
