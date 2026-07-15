@@ -40,6 +40,12 @@ class EnvConfig:
     gpu: bool = False  # node has the Intel iGPU (request gpu.intel.com/i915)
     obs_gpu: bool = True  # OBS claims the iGPU (gated on gpu and obs_gpu)
     obs_encoder: str = "obs_x264"  # ffmpeg_vaapi_tex on GPU envs
+    # Per-platform encoder override ({} = obs_encoder for every platform).
+    # prod youtube encodes on x264/CPU: with both platforms live, a second
+    # VAAPI session contends the iGPU and the twitch compositor drops below
+    # 60fps — the box has CPU headroom to spare, the iGPU is the scarce
+    # resource.
+    obs_encoder_by_platform: dict[str, str] = dataclasses.field(default_factory=dict)
     obs_quality: str = "low"  # low | high
     # Per-platform video bitrate override, kbps ({} = the preset's value,
     # which is the platform max we want everywhere). youtube is capped below
@@ -87,6 +93,7 @@ ENVS: dict[str, EnvConfig] = {
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
+        obs_encoder_by_platform={"youtube": "obs_x264"},
         obs_video_bitrate_kbps={"youtube": 3000},
         obs_cpu_request="2",
         priority_class="prod-stream",

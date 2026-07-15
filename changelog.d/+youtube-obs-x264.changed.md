@@ -1,0 +1,1 @@
+Per-platform encoder override (`obs_encoder_by_platform`); prod youtube encodes on x264/CPU — a second VAAPI session contends the iGPU and drops the twitch compositor below 60fps, while the box has CPU headroom to spare.

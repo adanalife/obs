@@ -14,7 +14,7 @@ data:
   VLC_URL_BASE: http://vlc-youtube:8080
   OBS_WEBSOCKET_PASSWD: adanalife
   OBS_QUALITY_PRESET: high
-  OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
+  OBS_STREAM_ENCODER: obs_x264
   OBS_VIDEO_BITRATE: "3000"
   STREAM_PLATFORM: youtube
 ---
@@ -60,7 +60,7 @@ spec:
         app.kubernetes.io/instance: obs-youtube
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: 2b3f13e282
+        adanalife.dev/config-hash: 50885a5b98
     spec:
       securityContext:
         seccompProfile:

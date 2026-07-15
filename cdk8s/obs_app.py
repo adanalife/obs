@@ -118,7 +118,9 @@ class ObsInstance(Construct):
             "VLC_URL_BASE": contract.vlc_url_base(platform),
             "OBS_WEBSOCKET_PASSWD": "adanalife",
             "OBS_QUALITY_PRESET": env.obs_quality,
-            "OBS_STREAM_ENCODER": env.obs_encoder,
+            "OBS_STREAM_ENCODER": env.obs_encoder_by_platform.get(
+                platform, env.obs_encoder
+            ),
             **(
                 {"OBS_VIDEO_BITRATE": str(env.obs_video_bitrate_kbps[platform])}
                 if platform in env.obs_video_bitrate_kbps
