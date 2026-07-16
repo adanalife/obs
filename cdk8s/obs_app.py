@@ -115,7 +115,6 @@ class ObsInstance(Construct):
         data = {
             "DASHCAM_RTSP_URL": contract.dashcam_rtsp_url(platform),
             "ONSCREENS_URL_BASE": contract.onscreens_url_base(platform),
-            "VLC_URL_BASE": contract.vlc_url_base(platform),
             "OBS_WEBSOCKET_PASSWD": "adanalife",
             "OBS_QUALITY_PRESET": env.obs_quality,
             "OBS_STREAM_ENCODER": env.obs_encoder,
