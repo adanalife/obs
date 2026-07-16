@@ -83,7 +83,7 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
 # same venv — it bridges the browser's WebSocket to wayvnc's TCP :5900 for
 # the noVNC client.
 RUN python3 -m venv /opt/obs/venv \
-    && /opt/obs/venv/bin/pip install --no-cache-dir obsws-python 'websockify==0.13.0'
+    && /opt/obs/venv/bin/pip install --no-cache-dir obsws-python 'websockify==0.13.0' 'flask==3.1.0'
 
 # noVNC: the static browser VNC client websockify serves on :6080. Reached
 # through the obs Ingress (traefik), so VNC works in a browser with no
