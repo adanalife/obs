@@ -58,7 +58,7 @@ spec:
         app.kubernetes.io/instance: obs-youtube
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: a5e0831041
+        adanalife.dev/config-hash: a6326216a8
     spec:
       securityContext:
         seccompProfile:
