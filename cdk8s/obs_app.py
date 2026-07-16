@@ -25,6 +25,11 @@ IMAGE = "ghcr.io/adanalife/obs"
 PART_OF = "tripbot"
 CONFIG_HASH_ANNOTATION = "adanalife.dev/config-hash"
 
+# Multi-arch image carrying the `crane` CLI, used by the PreSync image gate to
+# probe the registry. gcr.io (not Docker Hub) — the CI base-image-mirror policy
+# doesn't apply to a runtime cluster pull.
+CRANE_IMAGE = "gcr.io/go-containerregistry/crane:v0.21.7"
+
 # The ephemeral arm64 rpi5 worker on the minipc cluster — taint repels by
 # default, board label is the affinity target. OBS opts in (stage only) ONLY
 # while it's a software encoder; a VAAPI OBS must stay on the MS-01's iGPU, so
@@ -87,6 +92,70 @@ def _prefer_rpi5_affinity() -> dict:
 
 def _prefer_rpi5_tolerations() -> list[dict]:
     return [{"key": _RPI5_TAINT_KEY, "operator": "Exists", "effect": "NoSchedule"}]
+
+
+def emit_image_gate(
+    scope: Construct,
+    *,
+    name: str,
+    namespace: str,
+    labels: dict,
+    image_ref: str,
+) -> None:
+    """Argo PreSync hook asserting `image_ref` exists in the registry before the
+    sync reaches the Deployment.
+
+    OBS deploys with strategy Recreate (one Wayland/VNC owner), so a sync to a
+    not-yet-built tag tears the live pod down first and leaves its replacement in
+    ImagePullBackOff — a stream outage. PreSync hooks must succeed before the main
+    sync wave, so a `crane manifest` that 404s fails the hook, aborts the sync,
+    and leaves the running pod untouched. Re-sync once the image build lands. Only
+    emitted for pinned (immutable-tag) envs — floating tags always resolve to a
+    prior build, so they can't hit this.
+    """
+    _obj(
+        scope,
+        "image-gate",
+        api_version="batch/v1",
+        kind="Job",
+        name=f"{name}-image-gate",
+        namespace=namespace,
+        labels=labels,
+        annotations={
+            "argocd.argoproj.io/hook": "PreSync",
+            # Keep the last gate visible for debugging; replaced on next sync.
+            "argocd.argoproj.io/hook-delete-policy": "BeforeHookCreation",
+        },
+        spec={
+            "backoffLimit": 2,
+            # Cap the wait so a wedged/unschedulable probe fails the sync (pod
+            # safe) instead of stalling PreSync forever.
+            "activeDeadlineSeconds": 120,
+            "template": {
+                "metadata": {"labels": labels},
+                "spec": {
+                    "restartPolicy": "Never",
+                    "nodeSelector": {"kubernetes.io/arch": "amd64"},
+                    "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
+                    "containers": [
+                        {
+                            "name": "image-gate",
+                            "image": CRANE_IMAGE,
+                            "args": ["manifest", image_ref],
+                            "securityContext": {
+                                "allowPrivilegeEscalation": False,
+                                "capabilities": {"drop": ["ALL"]},
+                            },
+                            "resources": {
+                                "requests": {"cpu": "10m", "memory": "32Mi"},
+                                "limits": {"memory": "64Mi"},
+                            },
+                        }
+                    ],
+                },
+            },
+        },
+    )
 
 
 class ObsInstance(Construct):
@@ -178,9 +247,10 @@ class ObsInstance(Construct):
             requests["gpu.intel.com/i915"] = "1"
             limits["gpu.intel.com/i915"] = "1"
 
+        image_ref = f"{IMAGE}:{env.tag_for('obs')}"
         container = {
             "name": "obs",
-            "image": f"{IMAGE}:{env.tag_for('obs')}",
+            "image": image_ref,
             "imagePullPolicy": env.pull_policy_for("obs"),
             "securityContext": {
                 "allowPrivilegeEscalation": False,
@@ -240,6 +310,17 @@ class ObsInstance(Construct):
             labels=labels,
             spec=deployment_spec,
         )
+
+        # Guard the Recreate teardown against a not-yet-built image (pinned
+        # envs only — floating tags always resolve to a prior build).
+        if env.is_pinned("obs"):
+            emit_image_gate(
+                self,
+                name=name,
+                namespace=ns,
+                labels=labels,
+                image_ref=image_ref,
+            )
 
         # --- Service ---
         _obj(

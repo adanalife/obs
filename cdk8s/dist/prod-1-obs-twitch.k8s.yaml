@@ -105,6 +105,54 @@ spec:
       priorityClassName: prod-stream
   replicas: 1
 ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app: obs-twitch
+    app.kubernetes.io/instance: obs-twitch
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-twitch-image-gate
+  namespace: prod-1
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app: obs-twitch
+        app.kubernetes.io/name: obs
+        app.kubernetes.io/instance: obs-twitch
+        app.kubernetes.io/part-of: tripbot
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: image-gate
+          image: gcr.io/go-containerregistry/crane:v0.21.7
+          args:
+            - manifest
+            - ghcr.io/adanalife/obs:2.0.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
 apiVersion: v1
 kind: Service
 metadata:
