@@ -59,8 +59,14 @@ class EnvConfig:
 
     def pull_policy_for(self, component: str) -> str:
         """Pinned tags are immutable → IfNotPresent; floating tags → Always."""
-        pinned = component in _versions().get(self.name, {})
-        return "IfNotPresent" if pinned else "Always"
+        return "IfNotPresent" if self.is_pinned(component) else "Always"
+
+    def is_pinned(self, component: str) -> bool:
+        """True when this env deploys an immutable release tag (from
+        versions.yaml) rather than the floating tag. A pinned tag can be a
+        brand-new version whose image isn't built yet — the case the PreSync
+        image gate guards."""
+        return component in _versions().get(self.name, {})
 
     @property
     def replicas(self) -> int | None:
