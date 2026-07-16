@@ -13,6 +13,17 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.0.0] — 2026-07-16
+
+### Changed
+
+- The Dashcam source reads from the per-platform MediaMTX relay (`rtsp://mediamtx-<platform>:8554/dashcam`, published into by playout) instead of vlc-server, making the A/B's runtime repoint permanent. The vlc-only "Next-frame preview" cover layer (and its `VLC_URL_BASE` config) is removed — playout's concat pipeline has no clip-swap gap to paper over. ([#29](https://github.com/adanalife/obs/pull/29))
+
+### Misc
+
+- Drop `--edit` from the `changelog:add` task so it no longer opens $EDITOR and hangs in non-interactive (Claude/CI) sessions. ([#39](https://github.com/adanalife/obs/pull/39))
+- Standardize the towncrier bug-fix fragment type on `fix` (was `fixed`). ([#40](https://github.com/adanalife/obs/pull/40))
+
 ## [v1.2.0] — 2026-07-15
 
 ### Changed
