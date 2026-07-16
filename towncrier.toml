@@ -1,10 +1,10 @@
 # Changelog fragments, assembled by towncrier at release time.
 #
 # Every feature/fix PR drops a fragment in changelog.d/ named <PR>.<type>.md
-# (e.g. 42.fixed.md). You rarely know the PR number when branching, so scaffold
+# (e.g. 42.fix.md). You rarely know the PR number when branching, so scaffold
 # a "+" placeholder (towncrier's issue-less convention) and let CI number it:
 #
-#   task changelog:add TYPE=fixed          # writes changelog.d/+fixed.fixed.md
+#   task changelog:add TYPE=fix            # writes changelog.d/+fix.fix.md
 #   task changelog:preview                 # see the pending notes
 #   task changelog:build VERSION=1.2.0     # collate into CHANGELOG.md
 #
@@ -51,7 +51,7 @@ name = "Removed"
 showcontent = true
 
 [[tool.towncrier.type]]
-directory = "fixed"
+directory = "fix"
 name = "Fixed"
 showcontent = true
 
