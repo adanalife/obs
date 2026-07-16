@@ -42,9 +42,9 @@ class EnvConfig:
     obs_encoder: str = "obs_x264"  # ffmpeg_vaapi_tex on GPU envs
     obs_quality: str = "low"  # low | high
     # Per-platform video bitrate override, kbps ({} = the preset's value,
-    # which is the platform max we want everywhere). youtube is capped below
-    # max because two full-rate RTMP uploads saturate the home uplink and
-    # stutter the viewing path; lift the cap when the uplink has headroom.
+    # which is the platform max we want everywhere). Platform guidance for
+    # 1080p60 H.264: YouTube recommends 6800 kbps (Studio warns below that);
+    # Twitch's ingest max is 6000.
     obs_video_bitrate_kbps: dict[str, int] = dataclasses.field(default_factory=dict)
     obs_cpu_request: str = "200m"
     priority_class: str = ""  # prod-stream on prod; "" elsewhere
@@ -87,7 +87,6 @@ ENVS: dict[str, EnvConfig] = {
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
-        obs_video_bitrate_kbps={"youtube": 3000},
         obs_cpu_request="2",
         priority_class="prod-stream",
         tailscale=True,

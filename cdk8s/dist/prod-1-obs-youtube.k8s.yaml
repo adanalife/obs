@@ -14,7 +14,6 @@ data:
   OBS_WEBSOCKET_PASSWD: adanalife
   OBS_QUALITY_PRESET: high
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
-  OBS_VIDEO_BITRATE: "3000"
   STREAM_PLATFORM: youtube
 ---
 apiVersion: external-secrets.io/v1
@@ -59,14 +58,14 @@ spec:
         app.kubernetes.io/instance: obs-youtube
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: 060c3e80a8
+        adanalife.dev/config-hash: a5e0831041
     spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: obs
-          image: ghcr.io/adanalife/obs:1.1.0
+          image: ghcr.io/adanalife/obs:1.2.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
