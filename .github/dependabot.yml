@@ -8,14 +8,6 @@ updates:
   # without a workflow edit). Note: setting `labels` replaces Dependabot's
   # defaults, so the otherwise-automatic dependencies/ecosystem labels are
   # restated here.
-  - package-ecosystem: gomod
-    directory: /
-    schedule:
-      interval: daily
-    labels:
-      - dependencies
-      - go
-      - skip-changelog
   - package-ecosystem: github-actions
     directory: /
     schedule:
