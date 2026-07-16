@@ -64,7 +64,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: obs
-          image: ghcr.io/adanalife/obs:1.2.0
+          image: ghcr.io/adanalife/obs:2.0.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
