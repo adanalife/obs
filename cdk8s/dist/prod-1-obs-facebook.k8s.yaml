@@ -1,0 +1,225 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-facebook-config
+  namespace: prod-1
+data:
+  DASHCAM_RTSP_URL: rtsp://mediamtx-facebook:8554/dashcam
+  ONSCREENS_URL_BASE: http://onscreens-facebook:8080
+  OBS_WEBSOCKET_PASSWD: adanalife
+  OBS_QUALITY_PRESET: high
+  OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
+  STREAM_PLATFORM: facebook
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: obs-facebook-stream-key
+  namespace: prod-1
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-parameterstore
+    kind: SecretStore
+  target:
+    name: obs-facebook-stream-key
+    creationPolicy: Owner
+  data:
+    - secretKey: STREAM_KEY
+      remoteRef:
+        key: /k8s/obs/facebook-stream-key
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-facebook
+  namespace: prod-1
+spec:
+  selector:
+    matchLabels:
+      app: obs-facebook
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: obs-facebook
+        app.kubernetes.io/name: obs
+        app.kubernetes.io/instance: obs-facebook
+        app.kubernetes.io/part-of: tripbot
+      annotations:
+        adanalife.dev/config-hash: d3d36523ed
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: obs
+          image: ghcr.io/adanalife/obs:2.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: vnc
+              containerPort: 5900
+            - name: websocket
+              containerPort: 4455
+            - name: novnc
+              containerPort: 6080
+            - name: obs-server
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: obs-facebook-config
+            - secretRef:
+                name: obs-facebook-stream-key
+                optional: true
+          livenessProbe:
+            exec:
+              command:
+                - /opt/obs/healthcheck.sh
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "2"
+              memory: 512Mi
+              gpu.intel.com/i915: "1"
+            limits:
+              memory: 3Gi
+              gpu.intel.com/i915: "1"
+      priorityClassName: prod-stream
+  replicas: 0
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-facebook-image-gate
+  namespace: prod-1
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app: obs-facebook
+        app.kubernetes.io/name: obs
+        app.kubernetes.io/instance: obs-facebook
+        app.kubernetes.io/part-of: tripbot
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: image-gate
+          image: gcr.io/go-containerregistry/crane:v0.21.7
+          args:
+            - manifest
+            - ghcr.io/adanalife/obs:2.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-facebook
+  namespace: prod-1
+spec:
+  type: ClusterIP
+  selector:
+    app: obs-facebook
+  ports:
+    - name: vnc
+      port: 5900
+      targetPort: vnc
+    - name: websocket
+      port: 4455
+      targetPort: websocket
+    - name: novnc
+      port: 6080
+      targetPort: novnc
+    - name: obs-server
+      port: 8080
+      targetPort: obs-server
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/issuer: letsencrypt-route53
+    external-dns.alpha.kubernetes.io/hostname: obs-facebook.prod.whereisdana.today
+  name: obs-facebook
+  namespace: prod-1
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: obs-facebook.prod.whereisdana.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: obs-facebook
+                port:
+                  name: novnc
+  tls:
+    - hosts:
+        - obs-facebook.prod.whereisdana.today
+      secretName: obs-facebook-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: obs-facebook-ts
+  namespace: prod-1
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: obs-facebook
+      port:
+        number: 6080
+  tls:
+    - hosts:
+        - obs-facebook-prod
