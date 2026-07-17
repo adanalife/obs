@@ -107,13 +107,16 @@ ENVS: dict[str, EnvConfig] = {
         cluster="minipc",
         image_tag="main",
         dns_base="stage.whereisdana.today",
-        # facebook is the active stage platform (streams to the ADL Staging
-        # Page); twitch/youtube stay present but parked so bringing one back
-        # is a hand scale-up. facebook is 16:9 and reuses the twitch canvas —
-        # no per-platform scene work needed.
+        # Every stage platform is present but parked at replicas:0 — a
+        # platform comes online via the console's scale-up button (stage
+        # selfHeal is off, so the hand scale sticks). facebook is the current
+        # burn-in target (streams to the ADL Staging Page); it's 16:9 and
+        # reuses the twitch canvas — no per-platform scene work needed. Its
+        # stream-key ExternalSecret stays emitted (obs_streaming) so a
+        # scale-up is test-ready.
         platforms=("twitch", "youtube", "facebook"),
         obs_streaming=("facebook",),
-        parked_platforms=("twitch", "youtube"),
+        parked_platforms=("twitch", "youtube", "facebook"),
         manual_replicas=True,
         gpu=True,
         obs_gpu=True,
