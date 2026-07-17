@@ -33,8 +33,10 @@ def main() -> None:
                 stream_key_sm=(
                     f"/k8s/obs/{platform}-stream-key" if streaming else None
                 ),
+                # twitch is the container's default platform, so only
+                # non-twitch instances carry the key (same idiom as tripbot).
                 extra_config=(
-                    {"STREAM_PLATFORM": "youtube"} if platform == "youtube" else None
+                    {"STREAM_PLATFORM": platform} if platform != "twitch" else None
                 ),
             )
     app.synth()

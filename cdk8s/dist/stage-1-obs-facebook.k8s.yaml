@@ -2,45 +2,63 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   labels:
-    app: obs-youtube
-    app.kubernetes.io/instance: obs-youtube
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
     app.kubernetes.io/name: obs
     app.kubernetes.io/part-of: tripbot
-  name: obs-youtube-config
+  name: obs-facebook-config
   namespace: stage-1
 data:
-  DASHCAM_RTSP_URL: rtsp://mediamtx-youtube:8554/dashcam
-  ONSCREENS_URL_BASE: http://onscreens-youtube:8080
+  DASHCAM_RTSP_URL: rtsp://mediamtx-facebook:8554/dashcam
+  ONSCREENS_URL_BASE: http://onscreens-facebook:8080
   OBS_WEBSOCKET_PASSWD: adanalife
   OBS_QUALITY_PRESET: high
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
-  STREAM_PLATFORM: youtube
+  STREAM_PLATFORM: facebook
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: obs-facebook-stream-key
+  namespace: stage-1
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-parameterstore
+    kind: SecretStore
+  target:
+    name: obs-facebook-stream-key
+    creationPolicy: Owner
+  data:
+    - secretKey: STREAM_KEY
+      remoteRef:
+        key: /k8s/obs/facebook-stream-key
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: obs-youtube
-    app.kubernetes.io/instance: obs-youtube
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
     app.kubernetes.io/name: obs
     app.kubernetes.io/part-of: tripbot
-  name: obs-youtube
+  name: obs-facebook
   namespace: stage-1
 spec:
   selector:
     matchLabels:
-      app: obs-youtube
+      app: obs-facebook
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: obs-youtube
+        app: obs-facebook
         app.kubernetes.io/name: obs
-        app.kubernetes.io/instance: obs-youtube
+        app.kubernetes.io/instance: obs-facebook
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: a6326216a8
+        adanalife.dev/config-hash: d3d36523ed
     spec:
       securityContext:
         seccompProfile:
@@ -65,9 +83,9 @@ spec:
               containerPort: 8080
           envFrom:
             - configMapRef:
-                name: obs-youtube-config
+                name: obs-facebook-config
             - secretRef:
-                name: obs-youtube-stream-key
+                name: obs-facebook-stream-key
                 optional: true
           livenessProbe:
             exec:
@@ -91,16 +109,16 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: obs-youtube
-    app.kubernetes.io/instance: obs-youtube
+    app: obs-facebook
+    app.kubernetes.io/instance: obs-facebook
     app.kubernetes.io/name: obs
     app.kubernetes.io/part-of: tripbot
-  name: obs-youtube
+  name: obs-facebook
   namespace: stage-1
 spec:
   type: ClusterIP
   selector:
-    app: obs-youtube
+    app: obs-facebook
   ports:
     - name: vnc
       port: 5900
@@ -120,39 +138,39 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/issuer: letsencrypt-route53
-    external-dns.alpha.kubernetes.io/hostname: obs-youtube.stage.whereisdana.today
-  name: obs-youtube
+    external-dns.alpha.kubernetes.io/hostname: obs-facebook.stage.whereisdana.today
+  name: obs-facebook
   namespace: stage-1
 spec:
   ingressClassName: traefik
   rules:
-    - host: obs-youtube.stage.whereisdana.today
+    - host: obs-facebook.stage.whereisdana.today
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: obs-youtube
+                name: obs-facebook
                 port:
                   name: novnc
   tls:
     - hosts:
-        - obs-youtube.stage.whereisdana.today
-      secretName: obs-youtube-tls
+        - obs-facebook.stage.whereisdana.today
+      secretName: obs-facebook-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: obs-youtube-ts
+  name: obs-facebook-ts
   namespace: stage-1
 spec:
   ingressClassName: tailscale
   defaultBackend:
     service:
-      name: obs-youtube
+      name: obs-facebook
       port:
         number: 6080
   tls:
     - hosts:
-        - obs-youtube-stage
+        - obs-facebook-stage

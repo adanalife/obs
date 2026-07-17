@@ -84,6 +84,7 @@ spec:
             limits:
               memory: 3Gi
               gpu.intel.com/i915: "1"
+  replicas: 0
 ---
 apiVersion: v1
 kind: Service

@@ -64,6 +64,11 @@ case "${STREAM_PLATFORM:-twitch}" in
     export OBS_STREAM_SERVER="rtmps://a.rtmps.youtube.com:443/live2"
     echo "OBS stream platform: youtube (YouTube - RTMPS)"
     ;;
+  facebook)
+    export OBS_STREAM_SERVICE="Facebook Live"
+    export OBS_STREAM_SERVER="rtmps://live-api-s.facebook.com:443/rtmp/"
+    echo "OBS stream platform: facebook (Facebook Live RTMPS)"
+    ;;
   *)
     export OBS_STREAM_SERVICE="Twitch"
     export OBS_STREAM_SERVER="auto"
@@ -110,9 +115,11 @@ strip_scene_source() {
 
 scene_file="$OBS_HOME/basic/scenes/Tripbot.json"
 case "${STREAM_PLATFORM:-twitch}" in
-  youtube)
+  # facebook gets the same treatment as youtube: Meta's Rights Manager is as
+  # strike-happy as Content ID, so the SomaFM bed stays off and Car Hum plays.
+  youtube | facebook)
     strip_scene_source "Groove Salad Classic" "$scene_file"
-    echo "stripped 'Groove Salad Classic' (SomaFM); 'Car Hum' is the YouTube background audio"
+    echo "stripped 'Groove Salad Classic' (SomaFM); 'Car Hum' is the ${STREAM_PLATFORM} background audio"
     ;;
   *)
     strip_scene_source "Car Hum" "$scene_file"
