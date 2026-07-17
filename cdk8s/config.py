@@ -84,11 +84,15 @@ ENVS: dict[str, EnvConfig] = {
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
         platforms=("twitch", "youtube"),
-        # youtube streams unlisted: replicas=1, VAAPI to the prod YouTube
-        # ingest (stream-key SM k8s/obs/youtube-stream-key, adanalife-prod).
-        # The iGPU budget is two live encoders — prod-twitch + prod-youtube —
-        # so stage's VAAPI encoders stay scaled down.
+        # obs-youtube is parked at replicas:0 while the YouTube Data API quota
+        # extension is pending — the whole prod-youtube stack is staged, not
+        # live (tripbot parks its half in the tripbot repo). When unparked it
+        # streams unlisted: VAAPI to the prod YouTube ingest (stream-key SM
+        # k8s/obs/youtube-stream-key, adanalife-prod). The iGPU budget is two
+        # live encoders, so check what else holds a VAAPI slot before
+        # unparking.
         obs_streaming=("twitch", "youtube"),
+        parked_platforms=("youtube",),
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
