@@ -1,0 +1,1 @@
+Facebook Live streaming support: `STREAM_PLATFORM=facebook` points the canvas at Facebook's RTMPS ingest (Car Hum audio bed, like YouTube), and stage runs obs-facebook against the ADL Staging Page with twitch/youtube parked

@@ -107,8 +107,13 @@ ENVS: dict[str, EnvConfig] = {
         cluster="minipc",
         image_tag="main",
         dns_base="stage.whereisdana.today",
-        platforms=("twitch", "youtube"),
-        obs_streaming=("youtube",),
+        # facebook is the active stage platform (streams to the ADL Staging
+        # Page); twitch/youtube stay present but parked so bringing one back
+        # is a hand scale-up. facebook is 16:9 and reuses the twitch canvas —
+        # no per-platform scene work needed.
+        platforms=("twitch", "youtube", "facebook"),
+        obs_streaming=("facebook",),
+        parked_platforms=("twitch", "youtube"),
         manual_replicas=True,
         gpu=True,
         obs_gpu=True,
