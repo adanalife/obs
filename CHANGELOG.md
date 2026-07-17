@@ -13,6 +13,26 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.1.0] — 2026-07-17
+
+### Added
+
+- Facebook Live streaming support: `STREAM_PLATFORM=facebook` points the canvas at Facebook's RTMPS ingest (Car Hum audio bed, like YouTube); stage emits obs-facebook for the ADL Staging Page, parked at replicas:0 like every stage platform (console scale-up brings it online) ([#46](https://github.com/adanalife/obs/pull/46))
+- Stage emits playout-facebook (publishing to the mediamtx-facebook relay), parked at replicas:0 like every stage platform (console scale-up brings it online) ([#71](https://github.com/adanalife/obs/pull/71))
+
+### Changed
+
+- Park prod obs-youtube at replicas:0 while the YouTube Data API quota extension is pending, freeing its iGPU VAAPI encoder slot ([#45](https://github.com/adanalife/obs/pull/45))
+
+### Fixed
+
+- The arm64 image installs `flask` in the obs-server venv, matching the amd64 image — obs-server would otherwise crash-loop on arm64 (it imports flask but the venv lacked it). ([#38](https://github.com/adanalife/obs/pull/38))
+- Add an Argo PreSync hook that verifies the pinned image exists in the registry before a sync tears down the running pod, preventing an ImagePullBackOff outage when a deploy is synced ahead of its image build. ([#42](https://github.com/adanalife/obs/pull/42))
+
+### Misc
+
+- Release Discord notification links the version to the tagged `CHANGELOG.md` instead of an empty URL. ([#41](https://github.com/adanalife/obs/pull/41))
+
 ## [v2.0.0] — 2026-07-16
 
 ### Changed
