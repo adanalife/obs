@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.2.0] — 2026-07-17
+
+### Added
+
+- Add a parked prod-1 obs-facebook instance (replicas:0) that VAAPI-encodes to the prod Facebook Live ingest via a persistent stream key when unparked. ([#48](https://github.com/adanalife/obs/pull/48))
+
 ## [v2.1.0] — 2026-07-17
 
 ### Added
