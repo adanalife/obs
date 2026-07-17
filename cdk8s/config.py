@@ -83,7 +83,7 @@ ENVS: dict[str, EnvConfig] = {
         cluster="minipc",
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
-        platforms=("twitch", "youtube"),
+        platforms=("twitch", "youtube", "facebook"),
         # obs-youtube is parked at replicas:0 while the YouTube Data API quota
         # extension is pending — the whole prod-youtube stack is staged, not
         # live (tripbot parks its half in the tripbot repo). When unparked it
@@ -91,8 +91,15 @@ ENVS: dict[str, EnvConfig] = {
         # k8s/obs/youtube-stream-key, adanalife-prod). The iGPU budget is two
         # live encoders, so check what else holds a VAAPI slot before
         # unparking.
-        obs_streaming=("twitch", "youtube"),
-        parked_platforms=("youtube",),
+        #
+        # obs-facebook is staged the same way, parked at replicas:0. When
+        # unparked it VAAPI-encodes to the prod Facebook Live ingest via a
+        # persistent stream key (SM k8s/obs/facebook-stream-key, adanalife-prod);
+        # Dana takes the broadcast public from Facebook Live Producer. Facebook
+        # is the second live encoder against twitch — within the two-encoder
+        # iGPU budget, but don't unpark it alongside youtube.
+        obs_streaming=("twitch", "youtube", "facebook"),
+        parked_platforms=("youtube", "facebook"),
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
