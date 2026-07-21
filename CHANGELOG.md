@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.4.0] — 2026-07-21
+
+### Changed
+
+- OBS now sources its supported-platform set from platform-gateway's `platforms.json` and synthesizes the full set (instagram/tiktok born parked at `replicas: 0` on prod + stage). ([#53](https://github.com/adanalife/obs/pull/53))
+
 ## [v2.3.0] — 2026-07-21
 
 ### Changed
