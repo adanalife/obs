@@ -21,6 +21,24 @@ def _versions() -> dict:
     return yaml.safe_load(_VERSIONS_FILE.read_text()) or {}
 
 
+# The fleet-wide supported-platform set, owned by platform-gateway (its Go
+# adapter registry is the source of truth) and synced into this repo's
+# platforms.json via `task platforms:sync`. Every env's `platforms` must be a
+# subset of it (validated below). Never hand-edit platforms.json — add an
+# adapter in the gateway + re-sync.
+_PLATFORMS_FILE = Path(__file__).resolve().parents[1] / "platforms.json"
+
+
+def _load_supported_platforms() -> tuple[str, ...]:
+    import json
+
+    with _PLATFORMS_FILE.open() as f:
+        return tuple(json.load(f)["platforms"])
+
+
+SUPPORTED_PLATFORMS = _load_supported_platforms()
+
+
 @dataclass(frozen=True)
 class EnvConfig:
     name: str
@@ -72,7 +90,6 @@ ENVS: dict[str, EnvConfig] = {
         cluster="minipc",
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
-        platforms=("twitch", "youtube", "facebook"),
         # Every platform's OBS births parked at replicas:0; a console scale-up
         # brings one live and sticks (Argo ignores .spec.replicas). Only twitch
         # runs today. youtube waits on the pending YouTube Data API quota
@@ -81,7 +98,11 @@ ENVS: dict[str, EnvConfig] = {
         # the prod Facebook Live ingest (SM k8s/obs/facebook-stream-key) once
         # scaled up; Dana takes it public from Facebook Live Producer. The iGPU
         # budget is two live encoders, so mind what holds a VAAPI slot before
-        # scaling a second one up.
+        # scaling a second one up. instagram/tiktok synthesize here too (born
+        # parked); they don't stream yet (no obs_streaming) — they wait on the
+        # 9:16 vertical scene + stream keys before a console scale-up brings them
+        # live.
+        platforms=SUPPORTED_PLATFORMS,
         obs_streaming=("twitch", "youtube", "facebook"),
         gpu=True,
         obs_gpu=True,
@@ -103,8 +124,10 @@ ENVS: dict[str, EnvConfig] = {
         # (streams to the ADL Staging Page); it's 16:9 and reuses the twitch
         # canvas — no per-platform scene work needed. Its stream-key
         # ExternalSecret stays emitted (obs_streaming) so a scale-up is
-        # test-ready.
-        platforms=("twitch", "youtube", "facebook"),
+        # test-ready. instagram/tiktok synthesize here too (born parked); they
+        # don't stream yet (no obs_streaming) — they wait on the 9:16 vertical
+        # scene + stream keys.
+        platforms=SUPPORTED_PLATFORMS,
         obs_streaming=("facebook",),
         gpu=True,
         obs_gpu=True,
@@ -137,3 +160,13 @@ ENVS: dict[str, EnvConfig] = {
         obs_quality="low",
     ),
 }
+
+
+# Guard: an env can only run platforms the gateway has an adapter for.
+for _name, _env in ENVS.items():
+    _unknown = tuple(p for p in _env.platforms if p not in SUPPORTED_PLATFORMS)
+    if _unknown:
+        raise ValueError(
+            f"{_name}: platforms {_unknown} not in SUPPORTED_PLATFORMS "
+            f"{SUPPORTED_PLATFORMS} — add an adapter in platform-gateway + run `task platforms:sync`"
+        )

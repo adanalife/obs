@@ -8,6 +8,7 @@ matching how Argo applies them.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -40,6 +41,19 @@ def main() -> None:
                 ),
             )
     app.synth()
+
+    # Discovery index for infra's obs ApplicationSet: one tiny JSON per deploy
+    # unit at dist/apps/<env>-<app>.json. infra's git-files generator globs these
+    # to self-discover one Application per unit. Byte-identical to what the
+    # gateway/tripbot emit.
+    apps_dir = Path(__file__).parent / "dist" / "apps"
+    apps_dir.mkdir(parents=True, exist_ok=True)
+    for env in ENVS.values():
+        for platform in env.platforms:
+            entry = {"env": env.name, "app": f"obs-{platform}"}
+            (apps_dir / f"{env.name}-obs-{platform}.json").write_text(
+                json.dumps(entry, indent=2, sort_keys=True) + "\n"
+            )
 
 
 if __name__ == "__main__":
