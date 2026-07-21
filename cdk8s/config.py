@@ -21,6 +21,24 @@ def _versions() -> dict:
     return yaml.safe_load(_VERSIONS_FILE.read_text()) or {}
 
 
+# The fleet-wide supported-platform set, owned by platform-gateway (its Go
+# adapter registry is the source of truth) and synced into this repo's
+# platforms.json via `task platforms:sync`. Every env's `platforms` must be a
+# subset of it (validated below). Never hand-edit platforms.json — add an
+# adapter in the gateway + re-sync.
+_PLATFORMS_FILE = Path(__file__).resolve().parents[1] / "platforms.json"
+
+
+def _load_supported_platforms() -> tuple[str, ...]:
+    import json
+
+    with _PLATFORMS_FILE.open() as f:
+        return tuple(json.load(f)["platforms"])
+
+
+SUPPORTED_PLATFORMS = _load_supported_platforms()
+
+
 @dataclass(frozen=True)
 class EnvConfig:
     name: str
@@ -137,3 +155,13 @@ ENVS: dict[str, EnvConfig] = {
         obs_quality="low",
     ),
 }
+
+
+# Guard: an env can only run platforms the gateway has an adapter for.
+for _name, _env in ENVS.items():
+    _unknown = tuple(p for p in _env.platforms if p not in SUPPORTED_PLATFORMS)
+    if _unknown:
+        raise ValueError(
+            f"{_name}: platforms {_unknown} not in SUPPORTED_PLATFORMS "
+            f"{SUPPORTED_PLATFORMS} — add an adapter in platform-gateway + run `task platforms:sync`"
+        )

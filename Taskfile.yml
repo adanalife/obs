@@ -39,6 +39,14 @@ tasks:
     cmds:
       - bash carhum/render-variants.sh carhum/out
 
+  # platforms.json is the fleet-wide supported-platform set, owned by
+  # platform-gateway (its Go adapter registry is the source of truth) and synced
+  # into this repo. cdk8s reads it into SUPPORTED_PLATFORMS; never hand-edit it here.
+  platforms:sync:
+    desc: Re-sync platforms.json from the sibling platform-gateway checkout (the source of truth)
+    cmds:
+      - cp ../platform-gateway/platforms.json platforms.json
+
   cdk8s:synth:
     desc: Synthesize the k8s deploy manifests into cdk8s/dist/
     cmds:
