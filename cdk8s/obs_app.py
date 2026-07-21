@@ -286,6 +286,10 @@ class ObsInstance(Construct):
             pod_spec["tolerations"] = _prefer_rpi5_tolerations()
 
         deployment_spec: dict = {
+            # Births parked; a console scale-up brings the platform live and Argo
+            # ignores .spec.replicas so the scale sticks (infra argocd
+            # ignore_replicas). Replica count is runtime-owned, not git-owned.
+            "replicas": 0,
             "selector": {"matchLabels": {"app": name}},
             "strategy": {"type": "Recreate"},
             "template": {
@@ -296,9 +300,6 @@ class ObsInstance(Construct):
                 "spec": pod_spec,
             },
         }
-        replicas = env.replicas_for(platform)
-        if replicas is not None:
-            deployment_spec["replicas"] = replicas
 
         _obj(
             self,

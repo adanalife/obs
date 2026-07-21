@@ -27,6 +27,7 @@ metadata:
   name: obs-youtube
   namespace: stage-1
 spec:
+  replicas: 0
   selector:
     matchLabels:
       app: obs-youtube
@@ -85,7 +86,6 @@ spec:
             limits:
               memory: 3Gi
               gpu.intel.com/i915: "1"
-  replicas: 0
 ---
 apiVersion: v1
 kind: Service

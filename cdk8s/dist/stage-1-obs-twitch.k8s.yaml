@@ -26,6 +26,7 @@ metadata:
   name: obs-twitch
   namespace: stage-1
 spec:
+  replicas: 0
   selector:
     matchLabels:
       app: obs-twitch
@@ -84,7 +85,6 @@ spec:
             limits:
               memory: 3Gi
               gpu.intel.com/i915: "1"
-  replicas: 0
 ---
 apiVersion: v1
 kind: Service
