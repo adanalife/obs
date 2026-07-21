@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.3.0] — 2026-07-21
+
+### Changed
+
+- OBS Deployments now birth parked at `replicas: 0` for every platform and env — a platform comes online via the console's per-platform scale-up, which sticks because Argo ignores `.spec.replicas`. Replaces the `parked_platforms`/`manual_replicas` cdk8s knobs (replica count is now runtime-owned). ([#51](https://github.com/adanalife/obs/pull/51))
+
 ## [v2.2.0] — 2026-07-17
 
 ### Added
