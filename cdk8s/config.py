@@ -32,10 +32,6 @@ class EnvConfig:
     platforms: tuple[str, ...] = ("twitch",)
     # Platforms whose stream-key ExternalSecret is emitted (the live streamer).
     obs_streaming: tuple[str, ...] = ()
-    # Platforms rendered with replicas=0 (present but parked).
-    parked_platforms: tuple[str, ...] = ()
-    # When True, omit spec.replicas entirely (hand-scaled only — stage).
-    manual_replicas: bool = False
 
     gpu: bool = False  # node has the Intel iGPU (request gpu.intel.com/i915)
     obs_gpu: bool = True  # OBS claims the iGPU (gated on gpu and obs_gpu)
@@ -68,13 +64,6 @@ class EnvConfig:
         image gate guards."""
         return component in _versions().get(self.name, {})
 
-    @property
-    def replicas(self) -> int | None:
-        return None if self.manual_replicas else 1
-
-    def replicas_for(self, platform: str) -> int | None:
-        return 0 if platform in self.parked_platforms else self.replicas
-
 
 ENVS: dict[str, EnvConfig] = {
     "prod-1": EnvConfig(
@@ -84,22 +73,16 @@ ENVS: dict[str, EnvConfig] = {
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
         platforms=("twitch", "youtube", "facebook"),
-        # obs-youtube is parked at replicas:0 while the YouTube Data API quota
-        # extension is pending — the whole prod-youtube stack is staged, not
-        # live (tripbot parks its half in the tripbot repo). When unparked it
-        # streams unlisted: VAAPI to the prod YouTube ingest (stream-key SM
-        # k8s/obs/youtube-stream-key, adanalife-prod). The iGPU budget is two
-        # live encoders, so check what else holds a VAAPI slot before
-        # unparking.
-        #
-        # obs-facebook is staged the same way, parked at replicas:0. When
-        # unparked it VAAPI-encodes to the prod Facebook Live ingest via a
-        # persistent stream key (SM k8s/obs/facebook-stream-key, adanalife-prod);
-        # Dana takes the broadcast public from Facebook Live Producer. Facebook
-        # is the second live encoder against twitch — within the two-encoder
-        # iGPU budget, but don't unpark it alongside youtube.
+        # Every platform's OBS births parked at replicas:0; a console scale-up
+        # brings one live and sticks (Argo ignores .spec.replicas). Only twitch
+        # runs today. youtube waits on the pending YouTube Data API quota
+        # extension — when scaled up it streams unlisted (stream-key SM
+        # k8s/obs/youtube-stream-key, adanalife-prod). facebook VAAPI-encodes to
+        # the prod Facebook Live ingest (SM k8s/obs/facebook-stream-key) once
+        # scaled up; Dana takes it public from Facebook Live Producer. The iGPU
+        # budget is two live encoders, so mind what holds a VAAPI slot before
+        # scaling a second one up.
         obs_streaming=("twitch", "youtube", "facebook"),
-        parked_platforms=("youtube", "facebook"),
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
@@ -114,17 +97,15 @@ ENVS: dict[str, EnvConfig] = {
         cluster="minipc",
         image_tag="main",
         dns_base="stage.whereisdana.today",
-        # Every stage platform is present but parked at replicas:0 — a
-        # platform comes online via the console's scale-up button (stage
-        # selfHeal is off, so the hand scale sticks). facebook is the current
-        # burn-in target (streams to the ADL Staging Page); it's 16:9 and
-        # reuses the twitch canvas — no per-platform scene work needed. Its
-        # stream-key ExternalSecret stays emitted (obs_streaming) so a
-        # scale-up is test-ready.
+        # Every stage platform births parked at replicas:0 — a platform comes
+        # online via the console's scale-up button (Argo ignores .spec.replicas,
+        # so the hand scale sticks). facebook is the current burn-in target
+        # (streams to the ADL Staging Page); it's 16:9 and reuses the twitch
+        # canvas — no per-platform scene work needed. Its stream-key
+        # ExternalSecret stays emitted (obs_streaming) so a scale-up is
+        # test-ready.
         platforms=("twitch", "youtube", "facebook"),
         obs_streaming=("facebook",),
-        parked_platforms=("twitch", "youtube", "facebook"),
-        manual_replicas=True,
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",

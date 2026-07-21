@@ -44,6 +44,7 @@ metadata:
   name: obs-twitch
   namespace: prod-1
 spec:
+  replicas: 0
   selector:
     matchLabels:
       app: obs-twitch
@@ -103,7 +104,6 @@ spec:
               memory: 3Gi
               gpu.intel.com/i915: "1"
       priorityClassName: prod-stream
-  replicas: 1
 ---
 apiVersion: batch/v1
 kind: Job
