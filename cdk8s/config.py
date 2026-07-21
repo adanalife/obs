@@ -90,7 +90,6 @@ ENVS: dict[str, EnvConfig] = {
         cluster="minipc",
         image_tag="latest",  # overridden by the versions.yaml pin
         dns_base="prod.whereisdana.today",
-        platforms=("twitch", "youtube", "facebook"),
         # Every platform's OBS births parked at replicas:0; a console scale-up
         # brings one live and sticks (Argo ignores .spec.replicas). Only twitch
         # runs today. youtube waits on the pending YouTube Data API quota
@@ -99,7 +98,11 @@ ENVS: dict[str, EnvConfig] = {
         # the prod Facebook Live ingest (SM k8s/obs/facebook-stream-key) once
         # scaled up; Dana takes it public from Facebook Live Producer. The iGPU
         # budget is two live encoders, so mind what holds a VAAPI slot before
-        # scaling a second one up.
+        # scaling a second one up. instagram/tiktok synthesize here too (born
+        # parked); they don't stream yet (no obs_streaming) — they wait on the
+        # 9:16 vertical scene + stream keys before a console scale-up brings them
+        # live.
+        platforms=SUPPORTED_PLATFORMS,
         obs_streaming=("twitch", "youtube", "facebook"),
         gpu=True,
         obs_gpu=True,
@@ -121,8 +124,10 @@ ENVS: dict[str, EnvConfig] = {
         # (streams to the ADL Staging Page); it's 16:9 and reuses the twitch
         # canvas — no per-platform scene work needed. Its stream-key
         # ExternalSecret stays emitted (obs_streaming) so a scale-up is
-        # test-ready.
-        platforms=("twitch", "youtube", "facebook"),
+        # test-ready. instagram/tiktok synthesize here too (born parked); they
+        # don't stream yet (no obs_streaming) — they wait on the 9:16 vertical
+        # scene + stream keys.
+        platforms=SUPPORTED_PLATFORMS,
         obs_streaming=("facebook",),
         gpu=True,
         obs_gpu=True,

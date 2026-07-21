@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: obs-tiktok
+    app.kubernetes.io/instance: obs-tiktok
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-tiktok-config
+  namespace: stage-1
+data:
+  DASHCAM_RTSP_URL: rtsp://mediamtx-tiktok:8554/dashcam
+  ONSCREENS_URL_BASE: http://onscreens-tiktok:8080
+  OBS_WEBSOCKET_PASSWD: adanalife
+  OBS_QUALITY_PRESET: high
+  OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
+  STREAM_PLATFORM: tiktok
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: obs-tiktok
+    app.kubernetes.io/instance: obs-tiktok
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-tiktok
+  namespace: stage-1
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: obs-tiktok
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: obs-tiktok
+        app.kubernetes.io/name: obs
+        app.kubernetes.io/instance: obs-tiktok
+        app.kubernetes.io/part-of: tripbot
+      annotations:
+        adanalife.dev/config-hash: 6db8d60577
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: obs
+          image: ghcr.io/adanalife/obs:main
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: vnc
+              containerPort: 5900
+            - name: websocket
+              containerPort: 4455
+            - name: novnc
+              containerPort: 6080
+            - name: obs-server
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: obs-tiktok-config
+            - secretRef:
+                name: obs-tiktok-stream-key
+                optional: true
+          livenessProbe:
+            exec:
+              command:
+                - /opt/obs/healthcheck.sh
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+              gpu.intel.com/i915: "1"
+            limits:
+              memory: 3Gi
+              gpu.intel.com/i915: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: obs-tiktok
+    app.kubernetes.io/instance: obs-tiktok
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-tiktok
+  namespace: stage-1
+spec:
+  type: ClusterIP
+  selector:
+    app: obs-tiktok
+  ports:
+    - name: vnc
+      port: 5900
+      targetPort: vnc
+    - name: websocket
+      port: 4455
+      targetPort: websocket
+    - name: novnc
+      port: 6080
+      targetPort: novnc
+    - name: obs-server
+      port: 8080
+      targetPort: obs-server
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/issuer: letsencrypt-route53
+    external-dns.alpha.kubernetes.io/hostname: obs-tiktok.stage.whereisdana.today
+  name: obs-tiktok
+  namespace: stage-1
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: obs-tiktok.stage.whereisdana.today
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: obs-tiktok
+                port:
+                  name: novnc
+  tls:
+    - hosts:
+        - obs-tiktok.stage.whereisdana.today
+      secretName: obs-tiktok-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: obs-tiktok-ts
+  namespace: stage-1
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: obs-tiktok
+      port:
+        number: 6080
+  tls:
+    - hosts:
+        - obs-tiktok-stage
