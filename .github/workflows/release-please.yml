@@ -61,7 +61,7 @@ jobs:
       - uses: jdx/mise-action@v4
         if: ${{ steps.release.outputs.pr && !steps.release.outputs.release_created }}
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.2.0 # no floating major tag published
         if: ${{ steps.release.outputs.pr && !steps.release.outputs.release_created }}
 
       - name: Build changelog + re-synth cdk8s on the release PR branch
