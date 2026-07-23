@@ -61,6 +61,11 @@ name = "Security"
 showcontent = true
 
 [[tool.towncrier.type]]
+directory = "ci"
+name = "CI / Tooling"
+showcontent = true
+
+[[tool.towncrier.type]]
 directory = "misc"
 name = "Misc"
 showcontent = true
