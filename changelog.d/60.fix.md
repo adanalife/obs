@@ -1,0 +1,1 @@
+**Vertical platforms now actually stream the Vertical scene.** `start-obs.sh` launched OBS with a hardcoded `--scene Main`, which overrode the `current_scene = "Vertical"` the entrypoint sets for tiktok/instagram — so the portrait canvas rendered the landscape Main scene cropped instead of the 90°-rotated Vertical scene. It now selects `Vertical` when `OBS_VERTICAL=true`.
