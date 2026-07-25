@@ -38,6 +38,30 @@ case "${OBS_QUALITY_PRESET:-high}" in
     ;;
 esac
 
+# Canvas orientation. The scene collection is authored landscape (1920x1080),
+# so that's the base canvas for the 16:9 platforms. tiktok and instagram are
+# portrait-native, so their instances rotate the whole scene 90° into a
+# 1080x1920 canvas (the "Vertical" scene, generated below). OBS_VERTICAL
+# overrides the per-platform default — set it to force any platform vertical
+# for testing. The output resolution is the preset's dimensions swapped to
+# portrait; the base canvas is 1080x1920 so the rotated composite fills it.
+case "${STREAM_PLATFORM:-twitch}" in
+  tiktok | instagram) export OBS_VERTICAL="${OBS_VERTICAL:-true}" ;;
+  *) export OBS_VERTICAL="${OBS_VERTICAL:-false}" ;;
+esac
+if [[ "${OBS_VERTICAL}" == "true" ]]; then
+  landscape_width=$OBS_OUTPUT_WIDTH
+  export OBS_OUTPUT_WIDTH=$OBS_OUTPUT_HEIGHT
+  export OBS_OUTPUT_HEIGHT=$landscape_width
+  export OBS_BASE_WIDTH=1080
+  export OBS_BASE_HEIGHT=1920
+  echo "OBS orientation: vertical (${OBS_OUTPUT_WIDTH}x${OBS_OUTPUT_HEIGHT} portrait, ${OBS_BASE_WIDTH}x${OBS_BASE_HEIGHT} canvas)"
+else
+  export OBS_BASE_WIDTH=1920
+  export OBS_BASE_HEIGHT=1080
+  echo "OBS orientation: landscape (${OBS_OUTPUT_WIDTH}x${OBS_OUTPUT_HEIGHT})"
+fi
+
 # Stream encoder selection. Default obs_x264 (software) keeps stage-1 /
 # local dev / Mac k3d working without /dev/dri exposed. Override via
 # OBS_STREAM_ENCODER=ffmpeg_vaapi_tex (k8s configmap in prod-1) to use
@@ -85,6 +109,32 @@ cp /opt/obs/config/user.ini   "$OBS_HOME/user.ini"
 envsubst < /opt/obs/config/basic.ini.tmpl > "$OBS_HOME/basic/profiles/ADanaLife/basic.ini"
 envsubst < /opt/obs/config/Tripbot.json.tmpl > "$OBS_HOME/basic/scenes/Tripbot.json"
 
+scene_file="$OBS_HOME/basic/scenes/Tripbot.json"
+
+# Portrait platforms get a generated "Vertical" scene: the whole "Main" scene
+# rotated 90° clockwise into the 1080x1920 canvas. A point (x,y) on the
+# 1920x1080 landscape maps to (1080 - y, x), and every item gains 90° of its
+# own rotation. Groups rotate as one unit (their members ride the group's
+# transform), so only the scene-level items are transformed — the group
+# definitions and all sources are shared with Main untouched. Generating from
+# Main (rather than hand-authoring a second scene) keeps the two in lockstep as
+# Main evolves. Viewers are prompted to tilt their phone; TikTok can also flag
+# the live as landscape to nudge the same.
+if [[ "${OBS_VERTICAL}" == "true" ]]; then
+  jq '
+    (.sources | map(select(.name == "Main")) | .[0]) as $main
+    | ($main.settings.items | map(
+        .pos = { "x": (1080 - .pos.y), "y": .pos.x }
+        | .rot = (((.rot // 0) + 90) % 360)
+      )) as $vitems
+    | .sources += [ ($main | .name = "Vertical" | .settings.items = $vitems) ]
+    | .scene_order += [ { "name": "Vertical" } ]
+    | .current_scene = "Vertical"
+    | .current_program_scene = "Vertical"
+  ' "$scene_file" > "$scene_file.tmp" && mv "$scene_file.tmp" "$scene_file"
+  echo "generated portrait 'Vertical' scene (Main rotated 90° CW)"
+fi
+
 # Per-platform background audio. The shared scene collection ships two
 # mutually-exclusive background-audio sources, and exactly one is stripped per
 # platform before OBS loads the collection:
@@ -113,11 +163,11 @@ strip_scene_source() {
   ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
 }
 
-scene_file="$OBS_HOME/basic/scenes/Tripbot.json"
 case "${STREAM_PLATFORM:-twitch}" in
-  # facebook gets the same treatment as youtube: Meta's Rights Manager is as
+  # facebook, tiktok, and instagram get the same treatment as youtube: their
+  # content-matching (Meta's Rights Manager, TikTok/Instagram's audio ID) is as
   # strike-happy as Content ID, so the SomaFM bed stays off and Car Hum plays.
-  youtube | facebook)
+  youtube | facebook | tiktok | instagram)
     strip_scene_source "Groove Salad Classic" "$scene_file"
     echo "stripped 'Groove Salad Classic' (SomaFM); 'Car Hum' is the ${STREAM_PLATFORM} background audio"
     ;;

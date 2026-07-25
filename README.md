@@ -65,7 +65,8 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | Env var | Purpose |
 | --- | --- |
 | `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
-| `STREAM_PLATFORM` | `twitch` (default) or `youtube` — selects the ingest service and which background-audio source is stripped (`entrypoint.sh`); the youtube cdk8s overlay sets `youtube` |
+| `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, which background-audio source is stripped, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
+| `OBS_VERTICAL` | force portrait output (`true`/`false`); overrides the per-platform default so any platform can be tested vertical. Portrait renders a generated `Vertical` scene — `Main` rotated 90° CW into a 1080×1920 canvas |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |
 | `OBS_STREAM_ENCODER` | encoder selection (e.g. VAAPI vs x264) |

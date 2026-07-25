@@ -1,0 +1,1 @@
+Portrait canvas support for `tiktok` and `instagram`: these platforms render a generated `Vertical` scene — the whole `Main` scene rotated 90° into a 1080×1920 canvas — so the dashcam stream fits phone-native feeds. `OBS_VERTICAL` forces the mode for testing any platform.
