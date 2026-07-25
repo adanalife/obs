@@ -1,0 +1,1 @@
+TikTok streaming egress is now enabled on **prod-1** (`obs_streaming`): scaling up prod `obs-tiktok` emits the `obs-tiktok-stream-key` ExternalSecret, so a Streamlabs-minted per-session RTMP server + key (seeded into SSM `k8s/obs/tiktok-stream-{server,key}`, adanalife-prod) takes the prod dashcam live in the 9:16 `Vertical` scene. Mirrors the stage-1 enablement from #59.

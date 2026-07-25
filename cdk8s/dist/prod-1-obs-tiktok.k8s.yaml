@@ -16,6 +16,27 @@ data:
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
   STREAM_PLATFORM: tiktok
 ---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: obs-tiktok-stream-key
+  namespace: prod-1
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-parameterstore
+    kind: SecretStore
+  target:
+    name: obs-tiktok-stream-key
+    creationPolicy: Owner
+  data:
+    - secretKey: STREAM_KEY
+      remoteRef:
+        key: /k8s/obs/tiktok-stream-key
+    - secretKey: OBS_STREAM_SERVER
+      remoteRef:
+        key: /k8s/obs/tiktok-stream-server
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
