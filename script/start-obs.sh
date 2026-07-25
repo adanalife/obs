@@ -29,7 +29,12 @@ fi
 # --startstreaming only makes sense when a stream target is configured;
 # entrypoint.sh renders service.json into the profile dir only when
 # STREAM_KEY is set, so key off that file's existence.
-obs_args=(--disable-shutdown-check --collection 'Tripbot' --profile 'ADanaLife' --scene 'Main')
+# Portrait platforms (tiktok/instagram) stream the generated 90°-rotated
+# "Vertical" scene; everyone else streams "Main". entrypoint.sh sets
+# OBS_VERTICAL and builds the Vertical scene to match.
+start_scene='Main'
+[[ "${OBS_VERTICAL:-false}" == "true" ]] && start_scene='Vertical'
+obs_args=(--disable-shutdown-check --collection 'Tripbot' --profile 'ADanaLife' --scene "$start_scene")
 
 OBS_HOME="${HOME:-/root}/.config/obs-studio"
 if [[ -f "$OBS_HOME/basic/profiles/ADanaLife/service.json" ]]; then
