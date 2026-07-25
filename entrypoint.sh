@@ -82,6 +82,10 @@ echo "OBS stream encoder: ${OBS_STREAM_ENCODER}"
 # STREAM_PLATFORM=youtube (k8s configmap in the obs-youtube overlay) to
 # point the same canvas/encoder at YouTube's RTMPS ingest. service.json.tmpl
 # consumes OBS_STREAM_SERVICE / OBS_STREAM_SERVER via envsubst below.
+# Most platforms are OBS built-in services (rtmp_common: OBS resolves the
+# ingest by service name). TikTok isn't a built-in service, so it pushes to a
+# raw ingest URL (rtmp_custom) with no service lookup.
+export OBS_STREAM_TYPE="rtmp_common"
 case "${STREAM_PLATFORM:-twitch}" in
   youtube)
     export OBS_STREAM_SERVICE="YouTube - RTMPS"
@@ -92,6 +96,16 @@ case "${STREAM_PLATFORM:-twitch}" in
     export OBS_STREAM_SERVICE="Facebook Live"
     export OBS_STREAM_SERVER="rtmps://live-api-s.facebook.com:443/rtmp/"
     echo "OBS stream platform: facebook (Facebook Live RTMPS)"
+    ;;
+  tiktok)
+    # TikTok has no built-in OBS service and mints its ingest URL + key together
+    # per session (via the Streamlabs TikTok API), so both arrive through the
+    # stream-key secret: STREAM_KEY plus OBS_STREAM_SERVER. Push as a raw custom
+    # RTMP target and leave the service name unset.
+    export OBS_STREAM_TYPE="rtmp_custom"
+    export OBS_STREAM_SERVICE=""
+    export OBS_STREAM_SERVER="${OBS_STREAM_SERVER:-}" # seeded with the key; empty when parked
+    echo "OBS stream platform: tiktok (custom RTMP, per-session ingest)"
     ;;
   *)
     export OBS_STREAM_SERVICE="Twitch"
@@ -216,10 +230,16 @@ envsubst < /opt/obs/config/obs-websocket.json.tmpl > "$OBS_HOME/plugin_config/ob
 
 # Render service.json only when STREAM_KEY is set. start-obs.sh keys off
 # this file's existence to decide whether to pass --startstreaming.
-if [[ -n "${STREAM_KEY:-}" ]]; then
-  echo "STREAM_KEY set; configuring ${OBS_STREAM_SERVICE} and starting stream."
+if [[ -n "${STREAM_KEY:-}" && ( "$OBS_STREAM_TYPE" != "rtmp_custom" || -n "${OBS_STREAM_SERVER:-}" ) ]]; then
+  echo "STREAM_KEY set; configuring ${OBS_STREAM_SERVICE:-$OBS_STREAM_SERVER} and starting stream."
   envsubst < /opt/obs/config/service.json.tmpl \
     > "$OBS_HOME/basic/profiles/ADanaLife/service.json"
+elif [[ -n "${STREAM_KEY:-}" ]]; then
+  # Custom-RTMP platform (tiktok) with a key but no ingest URL yet — the
+  # per-session server hasn't been seeded. Start idle rather than push to a
+  # bad target.
+  echo "STREAM_KEY set but OBS_STREAM_SERVER empty for custom RTMP (${STREAM_PLATFORM}); OBS will start idle." >&2
+  rm -f "$OBS_HOME/basic/profiles/ADanaLife/service.json"
 else
   echo "STREAM_KEY not set; OBS will start idle. VNC into :5900 to inspect."
   rm -f "$OBS_HOME/basic/profiles/ADanaLife/service.json"
