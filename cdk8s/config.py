@@ -124,11 +124,12 @@ ENVS: dict[str, EnvConfig] = {
         # (streams to the ADL Staging Page); it's 16:9 and reuses the twitch
         # canvas — no per-platform scene work needed. Its stream-key
         # ExternalSecret stays emitted (obs_streaming) so a scale-up is
-        # test-ready. instagram/tiktok synthesize here too (born parked); they
-        # don't stream yet (no obs_streaming) — they wait on the 9:16 vertical
-        # scene + stream keys.
+        # test-ready. tiktok streams too: the 9:16 vertical scene ships and its
+        # ingest URL + key come from the Streamlabs TikTok API (seeded into the
+        # stream-key secret). instagram synthesizes here parked and doesn't
+        # stream yet — it waits on its own stream key.
         platforms=SUPPORTED_PLATFORMS,
-        obs_streaming=("facebook",),
+        obs_streaming=("facebook", "tiktok"),
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",

@@ -214,6 +214,21 @@ class ObsInstance(Construct):
         # distinct name so a twitch stream:on can't leak its key into youtube.
         secret_name = "obs-stream-key" if platform == "twitch" else f"{name}-stream-key"
         if streaming and stream_key_sm:
+            secret_data = [
+                {"secretKey": "STREAM_KEY", "remoteRef": {"key": stream_key_sm}},
+            ]
+            # TikTok has no static ingest host: Streamlabs mints the RTMP server
+            # URL per session alongside the key, so the server rides in the same
+            # secret (envFrom → OBS_STREAM_SERVER) instead of being baked into
+            # entrypoint.sh like youtube/facebook. The built-in-service platforms
+            # resolve their server by name and don't need this.
+            if platform == "tiktok":
+                secret_data.append(
+                    {
+                        "secretKey": "OBS_STREAM_SERVER",
+                        "remoteRef": {"key": f"/k8s/obs/{platform}-stream-server"},
+                    }
+                )
             _obj(
                 self,
                 "stream-key",
@@ -228,12 +243,7 @@ class ObsInstance(Construct):
                         "kind": "SecretStore",
                     },
                     "target": {"name": secret_name, "creationPolicy": "Owner"},
-                    "data": [
-                        {
-                            "secretKey": "STREAM_KEY",
-                            "remoteRef": {"key": stream_key_sm},
-                        }
-                    ],
+                    "data": secret_data,
                 },
             )
 
