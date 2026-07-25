@@ -13,6 +13,21 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.5.0] — 2026-07-25
+
+### Added
+
+- Portrait canvas support for `tiktok` and `instagram`: these platforms render a generated `Vertical` scene — the whole `Main` scene rotated 90° into a 1080×1920 canvas — so the dashcam stream fits phone-native feeds. `OBS_VERTICAL` forces the mode for testing any platform. ([#57](https://github.com/adanalife/obs/pull/57))
+- **TikTok streaming egress.** OBS can now push to TikTok, whose ingest has no built-in OBS service and whose RTMP URL + key are minted per session (via the Streamlabs TikTok API): a new `tiktok` case streams as a raw `rtmp_custom` target, and both the server URL and key ride in the `obs-tiktok-stream-key` secret. Enabled on stage-1 (`obs_streaming`), alongside the existing 9:16 vertical scene. ([#59](https://github.com/adanalife/obs/pull/59))
+
+### Fixed
+
+- **Vertical platforms now actually stream the Vertical scene.** `start-obs.sh` launched OBS with a hardcoded `--scene Main`, which overrode the `current_scene = "Vertical"` the entrypoint sets for tiktok/instagram — so the portrait canvas rendered the landscape Main scene cropped instead of the 90°-rotated Vertical scene. It now selects `Vertical` when `OBS_VERTICAL=true`. ([#60](https://github.com/adanalife/obs/pull/60))
+
+### CI / Tooling
+
+- Harden shared CI workflows: scope token permissions, pin super-linter and setup-uv. ([#55](https://github.com/adanalife/obs/pull/55))
+
 ## [v2.4.0] — 2026-07-21
 
 ### Changed
