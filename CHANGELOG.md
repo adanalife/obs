@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.7.0] — 2026-07-26
+
+### Changed
+
+- TikTok now streams at 30fps (was 60): TikTok recommends 30fps for non-gaming content and its portrait LIVE is unstable at 60. Framerate is now overridable via `OBS_FPS_COMMON` independent of the quality preset, so TikTok keeps the high preset's 1080p resolution + bitrate at 30fps (a new per-platform `obs_fps` cdk8s override, mirroring `obs_video_bitrate_kbps`). ([#63](https://github.com/adanalife/obs/pull/63))
+
 ## [v2.6.0] — 2026-07-25
 
 ### Added
