@@ -192,6 +192,11 @@ class ObsInstance(Construct):
                 if platform in env.obs_video_bitrate_kbps
                 else {}
             ),
+            **(
+                {"OBS_FPS_COMMON": str(env.obs_fps[platform])}
+                if platform in env.obs_fps
+                else {}
+            ),
             **(extra_config or {}),
         }
         cm_name = f"{name}-config"
