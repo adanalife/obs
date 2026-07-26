@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.6.0] — 2026-07-25
+
+### Added
+
+- TikTok streaming egress is now enabled on **prod-1** (`obs_streaming`): scaling up prod `obs-tiktok` emits the `obs-tiktok-stream-key` ExternalSecret, so a Streamlabs-minted per-session RTMP server + key (seeded into SSM `k8s/obs/tiktok-stream-{server,key}`, adanalife-prod) takes the prod dashcam live in the 9:16 `Vertical` scene. Mirrors the stage-1 enablement from #59. ([#61](https://github.com/adanalife/obs/pull/61))
+
 ## [v2.5.0] — 2026-07-25
 
 ### Added
