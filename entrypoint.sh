@@ -17,24 +17,28 @@ mkdir -p "$OBS_HOME/basic/profiles/ADanaLife" "$OBS_HOME/basic/scenes"
 # Expand quality preset into individual encoder params before envsubst.
 # OBS_QUALITY_PRESET=low  → 720p30, 1500 kbps (staging / dev laptops)
 # OBS_QUALITY_PRESET=high → 1080p60, 6000 kbps (production, Twitch max)
+# OBS_FPS_COMMON and OBS_VIDEO_BITRATE take the preset's value unless the
+# environment already set one — so a platform can override framerate/bitrate
+# independently of the resolution preset (e.g. tiktok runs the high preset's
+# 1080p but at 30fps, since its portrait LIVE is unstable at 60).
 case "${OBS_QUALITY_PRESET:-high}" in
   low)
     export OBS_OUTPUT_WIDTH=1280
     export OBS_OUTPUT_HEIGHT=720
-    export OBS_FPS_COMMON=30
+    export OBS_FPS_COMMON="${OBS_FPS_COMMON:-30}"
     export OBS_VIDEO_BITRATE="${OBS_VIDEO_BITRATE:-1500}"
     export OBS_AUDIO_BITRATE=128
     export OBS_ENCODER_PRESET=ultrafast
-    echo "OBS quality preset: low (720p30, ${OBS_VIDEO_BITRATE} kbps)"
+    echo "OBS quality preset: low (720p${OBS_FPS_COMMON}, ${OBS_VIDEO_BITRATE} kbps)"
     ;;
   *)
     export OBS_OUTPUT_WIDTH=1920
     export OBS_OUTPUT_HEIGHT=1080
-    export OBS_FPS_COMMON=60
+    export OBS_FPS_COMMON="${OBS_FPS_COMMON:-60}"
     export OBS_VIDEO_BITRATE="${OBS_VIDEO_BITRATE:-6000}"
     export OBS_AUDIO_BITRATE=160
     export OBS_ENCODER_PRESET=veryfast
-    echo "OBS quality preset: high (1080p60, ${OBS_VIDEO_BITRATE} kbps)"
+    echo "OBS quality preset: high (1080p${OBS_FPS_COMMON}, ${OBS_VIDEO_BITRATE} kbps)"
     ;;
 esac
 

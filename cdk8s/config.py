@@ -60,6 +60,10 @@ class EnvConfig:
     # 1080p60 H.264: YouTube recommends 6800 kbps (Studio warns below that);
     # Twitch's ingest max is 6000.
     obs_video_bitrate_kbps: dict[str, int] = dataclasses.field(default_factory=dict)
+    # Per-platform framerate override, fps ({} = the preset's value — 60 on
+    # high, 30 on low). tiktok runs 30 even on the high 1080p preset: its
+    # portrait LIVE is unstable at 60fps.
+    obs_fps: dict[str, int] = dataclasses.field(default_factory=dict)
     obs_cpu_request: str = "200m"
     priority_class: str = ""  # prod-stream on prod; "" elsewhere
     prefer_rpi5: bool = (
@@ -110,6 +114,11 @@ ENVS: dict[str, EnvConfig] = {
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
+        # tiktok runs the high preset's 1080p but at 30fps: TikTok recommends
+        # 30fps for non-gaming/lifestyle content, and its portrait LIVE is
+        # unstable at 60. 1080p30 + the preset's 6000 kbps sits at the top of
+        # TikTok's accepted 1080p range (its guidance is ~3000-6000).
+        obs_fps={"tiktok": 30},
         obs_cpu_request="2",
         priority_class="prod-stream",
         tailscale=True,
@@ -136,6 +145,7 @@ ENVS: dict[str, EnvConfig] = {
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
+        obs_fps={"tiktok": 30},  # 1080p30 vertical — see prod note
         obs_cpu_request="200m",
         prefer_rpi5=True,
         tailscale=True,

@@ -14,6 +14,7 @@ data:
   OBS_WEBSOCKET_PASSWD: adanalife
   OBS_QUALITY_PRESET: high
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
+  OBS_FPS_COMMON: "30"
   STREAM_PLATFORM: tiktok
 ---
 apiVersion: external-secrets.io/v1
@@ -62,7 +63,7 @@ spec:
         app.kubernetes.io/instance: obs-tiktok
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: 6db8d60577
+        adanalife.dev/config-hash: 390542b0ef
     spec:
       securityContext:
         seccompProfile:
