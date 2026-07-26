@@ -1,0 +1,1 @@
+Stream TikTok at 4000 kbps instead of the high preset's 6000. TikTok's portrait LIVE ingests 6000 kbps cleanly (OBS reports zero congestion) but plays it back black; 4000 renders. Resolution stays 1080p30.

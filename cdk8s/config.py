@@ -114,11 +114,13 @@ ENVS: dict[str, EnvConfig] = {
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
-        # tiktok runs the high preset's 1080p but at 30fps: TikTok recommends
-        # 30fps for non-gaming/lifestyle content, and its portrait LIVE is
-        # unstable at 60. 1080p30 + the preset's 6000 kbps sits at the top of
-        # TikTok's accepted 1080p range (its guidance is ~3000-6000).
+        # tiktok runs the high preset's 1080p at 30fps and 4000 kbps. TikTok
+        # recommends 30fps for non-gaming/lifestyle content and its portrait
+        # LIVE is unstable at 60. The preset's 6000 kbps ingests cleanly (OBS
+        # reports zero congestion) but TikTok plays it back black; 4000 is a
+        # known-good value — the exact ceiling in (4000, 6000] is untested.
         obs_fps={"tiktok": 30},
+        obs_video_bitrate_kbps={"tiktok": 4000},
         obs_cpu_request="2",
         priority_class="prod-stream",
         tailscale=True,
@@ -146,6 +148,9 @@ ENVS: dict[str, EnvConfig] = {
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
         obs_fps={"tiktok": 30},  # 1080p30 vertical — see prod note
+        obs_video_bitrate_kbps={
+            "tiktok": 4000
+        },  # known-good; 6000 plays back black on TikTok — see prod note
         obs_cpu_request="200m",
         prefer_rpi5=True,
         tailscale=True,
