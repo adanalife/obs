@@ -1,14 +1,12 @@
-# Verifies the committed cdk8s/dist/ deploy units are in sync with the
+# Post-merge sweep verifying the committed cdk8s/dist/ deploy units are in sync with the
 # authoring code: re-synth and fail on any diff. Verify-only — the synth is
 # fast enough to run locally via `task cdk8s:synth`.
 name: cdk8s-synth
+#
+# The PR-time check is a step of the `gates` job in pr-gates.yml, guarded on the
+# PR's changed paths. This workflow is the main-branch backstop, catching a
+# desync that lands some way other than a PR.
 on:
-  pull_request:
-    paths:
-      - 'cdk8s/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/cdk8s-synth.yml'
   push:
     branches:
       - main
