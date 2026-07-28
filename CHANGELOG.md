@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.7.2] — 2026-07-28
+
+### Fixed
+
+- Pin the VAAPI stream encoder to an explicit H.264 level 4.2. Left on Auto the bitstream signalled level 4.0, which 1080p60 exceeds in either orientation — strict hardware decoders can reject the under-declared stream. ([#68](https://github.com/adanalife/obs/pull/68))
+
 ## [v2.7.1] — 2026-07-27
 
 ### Fixed
