@@ -13,6 +13,16 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.7.1] — 2026-07-27
+
+### Fixed
+
+- Stream TikTok at 4000 kbps instead of the high preset's 6000. TikTok's portrait LIVE ingests 6000 kbps cleanly (OBS reports zero congestion) but plays it back black; 4000 renders. Resolution stays 1080p30. ([#65](https://github.com/adanalife/obs/pull/65))
+
+### CI / Tooling
+
+- Collapse the fast per-PR gates (conventional title, changelog fragment, platforms.json contract, cdk8s dist sync) into a single `gates` job in `pr-gates.yml`. Actions bills per job rounded up to the minute, so four short checks cost four minutes; as steps of one job they cost one. ([#67](https://github.com/adanalife/obs/pull/67))
+
 ## [v2.7.0] — 2026-07-26
 
 ### Changed
