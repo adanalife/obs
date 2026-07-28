@@ -204,11 +204,18 @@ case "${OBS_STREAM_ENCODER}" in
     # profile=100 == AV_PROFILE_H264_HIGH (libavcodec). vaapi_device picks the
     # iGPU's renderD128 node — the only DRM node the Intel device plugin
     # exposes inside the pod.
+    #
+    # level=42 == H.264 level 4.2 (OBS takes the level as its level_idc
+    # integer). Both orientations run 1080p60 — 1920x1080 and 1080x1920 are
+    # 8160 macroblocks, 489,600 MB/s at 60fps — which is well past level 4.0's
+    # 245,760 MB/s ceiling and inside 4.2's 522,240. Left on Auto the driver
+    # signals 4.0, an under-declaration strict hardware decoders can reject.
     cat > "$OBS_HOME/basic/profiles/ADanaLife/streamEncoder.json" <<EOF
 {
     "bf": 0,
     "bitrate": ${OBS_VIDEO_BITRATE},
     "keyint_sec": 2,
+    "level": 42,
     "profile": 100,
     "rate_control": "CBR",
     "vaapi_device": "/dev/dri/renderD128"

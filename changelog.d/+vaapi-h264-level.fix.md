@@ -1,0 +1,1 @@
+Pin the VAAPI stream encoder to an explicit H.264 level 4.2. Left on Auto the bitstream signalled level 4.0, which 1080p60 exceeds in either orientation — strict hardware decoders can reject the under-declared stream.
