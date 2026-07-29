@@ -29,6 +29,9 @@ processes:
   three beds: the SomaFM stream, a license-clean car-interior drone rendered at
   build time (`carhum/`), or an album from the mounted music share. Selected at
   startup by `OBS_BACKGROUND_AUDIO` and switchable live from the admin console.
+  The source is audio-only in intent but OBS renders any video its file carries
+  (album tracks embed cover art), so its scene item is parked off-canvas —
+  hiding it would stop the audio too.
 
 ## Layout
 
