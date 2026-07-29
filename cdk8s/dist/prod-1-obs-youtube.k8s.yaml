@@ -163,6 +163,64 @@ spec:
             limits:
               memory: 64Mi
 ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app: obs-youtube
+    app.kubernetes.io/instance: obs-youtube
+    app.kubernetes.io/name: obs
+    app.kubernetes.io/part-of: tripbot
+  name: obs-youtube-volume-gate
+  namespace: prod-1
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app: obs-youtube
+        app.kubernetes.io/name: obs
+        app.kubernetes.io/instance: obs-youtube
+        app.kubernetes.io/part-of: tripbot
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: volume-gate
+          image: ghcr.io/adanalife/mirror/ubuntu:24.04
+          command:
+            - "true"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: gated
+              mountPath: /gated
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+      volumes:
+        - name: gated
+          persistentVolumeClaim:
+            claimName: obs-music
+            readOnly: true
+---
 apiVersion: v1
 kind: Service
 metadata:
