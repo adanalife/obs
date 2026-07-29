@@ -29,13 +29,18 @@ BACKGROUND_AUDIO_INPUT="Background Audio"
 MUSIC_DIR="${MUSIC_DIR:-/opt/tripbot/assets/music}"
 CARHUM_BED="${CARHUM_BED:-/opt/tripbot/assets/carhum/car-hum-idle.flac}"
 
-# ponytail: every audio file under the share is one pool, no album concept —
-# there's one album. Group by subdirectory when a second one shows up.
+# Albums are subdirectories of the share; loose files at its root are NOT tracks.
+# The share holds other audio alongside the albums (carsounds.m4a, a 556MB
+# archive), and a flat scan would shuffle that into the rotation as one enormous
+# "track". -mindepth 2 is the whole rule.
+#
+# ponytail: every album subdirectory is one pool — with one album that IS the
+# album. Add a picker when a second one shows up and they shouldn't interleave.
 #
 # `|| true` because callers run under `set -euo pipefail` and an unmounted share
 # makes find exit non-zero — an empty result is a valid answer, not a failure.
 random_album_track() {
-  find "$MUSIC_DIR" -type f \
+  find "$MUSIC_DIR" -mindepth 2 -type f \
     \( -name '*.mp3' -o -name '*.flac' -o -name '*.m4a' -o -name '*.ogg' \) 2>/dev/null |
     shuf -n1 || true
 }

@@ -57,13 +57,25 @@ CARHUM_BED=/opt/tripbot/assets/carhum/car-hum-idle.flac \
 # the next track when OBS reports the media ended, which never fires on a loop.
 scene=$work/album.json
 render_scene "$scene"
-mkdir -p "$work/music"
-touch "$work/music/001 Maine - Atlantic Dawn.mp3"
+mkdir -p "$work/music/fifty-horizons"
+touch "$work/music/001 Maine - Atlantic Dawn.mp3"  # decoy: see the root-file check below
+touch "$work/music/fifty-horizons/001 Maine - Atlantic Dawn.mp3"
 MUSIC_DIR=$work/music set_background_audio album "$scene" >/dev/null
 [[ $(bg '.settings.is_local_file' "$scene") == true ]] || fail "album: is_local_file should be true"
 [[ $(bg '.settings.looping' "$scene") == false ]] || fail "album: must not loop (blocks track advance)"
-[[ $(bg '.settings.local_file' "$scene") == "$work/music/001 Maine - Atlantic Dawn.mp3" ]] ||
+[[ $(bg '.settings.local_file' "$scene") == "$work/music/fifty-horizons/001 Maine - Atlantic Dawn.mp3" ]] ||
   fail "album: wrong track (paths with spaces must survive)"
+
+# Loose files at the share root are not tracks. The real share keeps a 556MB
+# carsounds.m4a next to the album directories; picking it would put a
+# nine-hour file on the stream and stall the rotation.
+scene=$work/album-root-only.json
+render_scene "$scene"
+mkdir -p "$work/rootonly"
+touch "$work/rootonly/carsounds.m4a"
+MUSIC_DIR=$work/rootonly set_background_audio album "$scene" 2>/dev/null >/dev/null
+[[ $(bg '.settings.local_file' "$scene") == *car-hum* ]] ||
+  fail "album: a loose file at the share root must not be treated as a track"
 
 # album with no share mounted (dev/local) — degrades to the looping carhum bed
 # rather than going silent.
