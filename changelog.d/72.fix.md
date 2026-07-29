@@ -1,0 +1,1 @@
+The album background-audio bed now starts only on tracks from album subdirectories of the music share. Loose audio files at the share root — it also holds a 556MB `carsounds.m4a` — could be picked as the starting track.
