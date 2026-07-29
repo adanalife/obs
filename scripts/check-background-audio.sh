@@ -106,9 +106,10 @@ if set_background_audio wurlitzer "$scene" 2>/dev/null; then
   fail "unknown bed should be rejected"
 fi
 
-# Platform defaults — the behaviour the old per-platform source strip had.
+# Platform defaults.
 [[ $(default_background_audio twitch) == somafm ]] || fail "twitch should default to somafm"
-for p in youtube facebook tiktok instagram; do
+[[ $(default_background_audio tiktok) == album ]] || fail "tiktok should default to album"
+for p in youtube facebook instagram; do
   [[ $(default_background_audio "$p") == carhum ]] || fail "$p should default to carhum"
 done
 

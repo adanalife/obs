@@ -154,8 +154,8 @@ if [[ "${OBS_VERTICAL}" == "true" ]]; then
 fi
 
 # Background audio: write the starting bed onto the single "Background Audio"
-# source. The bed defaults per platform (SomaFM on Twitch, the license-clean
-# carhum drone everywhere else — the split that used to be a source strip) and
+# source. The bed defaults per platform (SomaFM on Twitch, the licensed album on
+# TikTok, the license-clean carhum drone everywhere else) and
 # cdk8s overrides it per (env, platform) with OBS_BACKGROUND_AUDIO. Any bed runs
 # on any platform, and the console switches it live over the WebSocket, so this
 # only picks where the stream starts.
