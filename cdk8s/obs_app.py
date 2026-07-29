@@ -30,6 +30,11 @@ CONFIG_HASH_ANNOTATION = "adanalife.dev/config-hash"
 # doesn't apply to a runtime cluster pull.
 CRANE_IMAGE = "gcr.io/go-containerregistry/crane:v0.21.7"
 
+# The volume gate runs `true` — the mount is the whole assertion, so any image
+# does. Reuses the ubuntu mirror the Dockerfile's carhum stage already pulls
+# rather than introducing a second base to keep current.
+VOLUME_GATE_IMAGE = "ghcr.io/adanalife/mirror/ubuntu:24.04"
+
 # The ephemeral arm64 rpi5 worker on the minipc cluster — taint repels by
 # default, board label is the affinity target. OBS opts in (stage only) ONLY
 # while it's a software encoder; a VAAPI OBS must stay on the MS-01's iGPU, so
@@ -149,6 +154,110 @@ def emit_image_gate(
                             "resources": {
                                 "requests": {"cpu": "10m", "memory": "32Mi"},
                                 "limits": {"memory": "64Mi"},
+                            },
+                        }
+                    ],
+                },
+            },
+        },
+    )
+
+
+def emit_volume_gate(
+    scope: Construct,
+    *,
+    name: str,
+    namespace: str,
+    labels: dict,
+    claim_name: str,
+) -> None:
+    """Argo PreSync hook asserting `claim_name` can actually be mounted before
+    the sync reaches the Deployment.
+
+    Same failure shape the image gate guards, via a different dependency. OBS
+    deploys with strategy Recreate (one Wayland/VNC owner), so a sync tears the
+    live pod down first — and if the claim is unbound, its replacement sits
+    Pending on "unbound immediate PersistentVolumeClaims" and the stream is off
+    the air. That is not hypothetical: it happened in prod on 2026-07-29, when
+    the obs-music claim shipped before its out-of-band PV was provisioned.
+
+    Kubernetes has no optional PVC (`optional` covers ConfigMap and Secret
+    volumes only), so the mount is unavoidably a hard scheduling dependency.
+    What this can do is move the failure off the critical path: the gate pod
+    mounts the claim and runs `true`, so an unbound claim leaves the GATE pod
+    Pending instead, activeDeadlineSeconds fails the hook, and the sync aborts
+    with the running OBS untouched. Re-sync once `task k8s:<env>:nfs-pv` has
+    laid the PV down.
+
+    Mounting is the whole assertion — no kubectl, no RBAC, no reading cluster
+    state. The question "can a pod mount this?" is answered by trying.
+    """
+    _obj(
+        scope,
+        "volume-gate",
+        api_version="batch/v1",
+        kind="Job",
+        name=f"{name}-volume-gate",
+        namespace=namespace,
+        labels=labels,
+        annotations={
+            "argocd.argoproj.io/hook": "PreSync",
+            "argocd.argoproj.io/hook-delete-policy": "BeforeHookCreation",
+        },
+        spec={
+            "backoffLimit": 2,
+            # An unbound claim never schedules, so the deadline IS the failure
+            # signal — keep it short enough that a genuine miss fails fast.
+            "activeDeadlineSeconds": 120,
+            "template": {
+                "metadata": {"labels": labels},
+                "spec": {
+                    "restartPolicy": "Never",
+                    # Pinned like the image gate: the claim is ReadOnlyMany NFS
+                    # and mounts from any node, so arch is free to choose — and
+                    # choosing amd64 keeps a gate failure meaning "the volume is
+                    # not mountable" rather than "the image had no arm64 layer".
+                    "nodeSelector": {"kubernetes.io/arch": "amd64"},
+                    # The ubuntu mirror's default user is root, and the
+                    # `restricted` PodSecurity profile these namespaces run
+                    # requires runAsNonRoot be set explicitly — without it the
+                    # gate is a violation, which would fail PreSync for a reason
+                    # unrelated to the volume. Nothing is read through the mount
+                    # (the kubelet does the mounting; the container only has to
+                    # schedule), so any uid works.
+                    "securityContext": {
+                        "runAsNonRoot": True,
+                        "runAsUser": 65532,
+                        "seccompProfile": {"type": "RuntimeDefault"},
+                    },
+                    "containers": [
+                        {
+                            "name": "volume-gate",
+                            "image": VOLUME_GATE_IMAGE,
+                            "command": ["true"],
+                            "securityContext": {
+                                "allowPrivilegeEscalation": False,
+                                "capabilities": {"drop": ["ALL"]},
+                            },
+                            "volumeMounts": [
+                                {
+                                    "name": "gated",
+                                    "mountPath": "/gated",
+                                    "readOnly": True,
+                                }
+                            ],
+                            "resources": {
+                                "requests": {"cpu": "10m", "memory": "16Mi"},
+                                "limits": {"memory": "32Mi"},
+                            },
+                        }
+                    ],
+                    "volumes": [
+                        {
+                            "name": "gated",
+                            "persistentVolumeClaim": {
+                                "claimName": claim_name,
+                                "readOnly": True,
                             },
                         }
                     ],
@@ -367,6 +476,18 @@ class ObsInstance(Construct):
                 namespace=ns,
                 labels=labels,
                 image_ref=image_ref,
+            )
+
+        # Guard the same teardown against the music claim not being mountable.
+        # Not gated on is_pinned: an unbound claim strands a floating-tag env
+        # just as hard, since the tag isn't what's missing.
+        if env.music_share:
+            emit_volume_gate(
+                self,
+                name=name,
+                namespace=ns,
+                labels=labels,
+                claim_name="obs-music",
             )
 
         # --- Service ---

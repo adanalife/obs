@@ -1,0 +1,1 @@
+A PreSync hook now asserts the `obs-music` claim is mountable before a sync tears the running OBS down. OBS deploys with strategy Recreate, so an unbound claim previously left the replacement pod Pending and the stream off the air; the gate fails the sync instead, leaving the live pod untouched.
