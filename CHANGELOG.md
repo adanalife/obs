@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.8.0] — 2026-07-29
+
+### Changed
+
+- Background audio is now a single `Background Audio` scene source that plays any of three beds — the SomaFM stream, the license-clean carhum drone, or an album from the mounted music share — replacing the two mutually-exclusive sources with one stripped per platform. `OBS_BACKGROUND_AUDIO` picks the starting bed (`somafm` on twitch, `carhum` elsewhere, as before) and every bed is now available on every platform. ([#70](https://github.com/adanalife/obs/pull/70))
+
 ## [v2.7.2] — 2026-07-28
 
 ### Fixed
