@@ -86,6 +86,15 @@ spec:
             limits:
               memory: 3Gi
               gpu.intel.com/i915: "1"
+          volumeMounts:
+            - name: music
+              mountPath: /opt/tripbot/assets/music
+              readOnly: true
+      volumes:
+        - name: music
+          persistentVolumeClaim:
+            claimName: obs-music
+            readOnly: true
 ---
 apiVersion: v1
 kind: Service

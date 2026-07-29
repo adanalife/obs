@@ -25,9 +25,10 @@ processes:
   refresh (a workaround for CEF's per-frame memory leak), and a small Flask
   `obs-server` exposing `/health/ready`, `/version`, and `POST /admin/shutdown`.
 - **Scene/profile templates** (`config/`) rendered at startup from env vars.
-- **Car-hum audio beds** (`carhum/`) — license-clean car-interior drones rendered
-  at build time, cycled live on the YouTube scene by tripbot's `!carsound`
-  command.
+- **Background audio beds** — one `Background Audio` scene source, playing one of
+  three beds: the SomaFM stream, a license-clean car-interior drone rendered at
+  build time (`carhum/`), or an album from the mounted music share. Selected at
+  startup by `OBS_BACKGROUND_AUDIO` and switchable live from the admin console.
 
 ## Layout
 
@@ -65,7 +66,8 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | Env var | Purpose |
 | --- | --- |
 | `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
-| `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, which background-audio source is stripped, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
+| `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, the default background-audio bed, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
+| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `somafm` on twitch, `carhum` elsewhere. Only the *starting* bed — tripbot rewrites the source live |
 | `OBS_VERTICAL` | force portrait output (`true`/`false`); overrides the per-platform default so any platform can be tested vertical. Portrait renders a generated `Vertical` scene — `Main` rotated 90° CW into a 1080×1920 canvas |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |
@@ -75,11 +77,19 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 
 ## The tripbot contract (the one coupling that survives the split)
 
-tripbot's `!carsound` command (`pkg/chatbot/carsound.go`) selects among the FLAC
-variants this image bakes into `/opt/tripbot/assets/carhum/`. The variant names
-are a **hand-maintained contract** between `carhum/render-variants.sh` here and
-the `carSound` list in tripbot. Change the variants in one place → update the
-other. (Same shape as the eventbus contracts shared with tripbot-console.)
+tripbot drives the `Background Audio` source over the OBS WebSocket — the audio
+watchdog swaps it to a local bed when SomaFM drops, `!carsound` picks a drone,
+and the console's bed selector switches between all three. Three
+**hand-maintained contracts** hold that together; change one side → update the
+other:
+
+| Contract | Here | In tripbot |
+| --- | --- | --- |
+| Source name | `Background Audio` in `config/Tripbot.json.tmpl` | `BackgroundAudioInputName` |
+| Car-hum variants | `carhum/render-variants.sh` + the Dockerfiles' `COPY` | the `carSound` list in `pkg/chatbot/carsound.go` |
+| Bed names + paths | `set_background_audio` in `entrypoint.sh` | the bed registry in `pkg/obs/beds` |
+
+(Same shape as the eventbus contracts shared with tripbot-console.)
 
 ## Releasing
 

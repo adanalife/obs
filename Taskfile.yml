@@ -39,6 +39,11 @@ tasks:
     cmds:
       - bash carhum/render-variants.sh carhum/out
 
+  audio:check:
+    desc: Assert every background-audio bed writes the right settings onto the scene (bash + jq, no image build)
+    cmds:
+      - bash scripts/check-background-audio.sh
+
   # platforms.json is the fleet-wide supported-platform set, owned by
   # platform-gateway (its Go adapter registry is the source of truth) and synced
   # into this repo. cdk8s reads it into SUPPORTED_PLATFORMS; never hand-edit it here.

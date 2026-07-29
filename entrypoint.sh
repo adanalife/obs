@@ -153,47 +153,17 @@ if [[ "${OBS_VERTICAL}" == "true" ]]; then
   echo "generated portrait 'Vertical' scene (Main rotated 90° CW)"
 fi
 
-# Per-platform background audio. The shared scene collection ships two
-# mutually-exclusive background-audio sources, and exactly one is stripped per
-# platform before OBS loads the collection:
-#
-#   - "Groove Salad Classic" (SomaFM ffmpeg_source) streams internet radio whose
-#     music is NOT cleared for our rebroadcast: it reliably trips YouTube's
-#     Content ID and earns copyright strikes there, which is why YouTube uses
-#     "Car Hum" instead. Twitch hasn't struck it so far, so it stays on Twitch —
-#     but that's empirical tolerance, not a license, and could draw a DMCA claim
-#     at any time. Stripped on YouTube.
-#   - "Car Hum" (a locally-generated, license-clean drone — see
-#     carhum/) is the YouTube background bed in its place, and is
-#     stripped on Twitch so the two don't both play.
-#
-# Top-level "sources" holds both real sources and the scene objects (scenes
-# reference members by name under settings.items), so both the source
-# definition and every referencing scene item are dropped.
-strip_scene_source() {
-  local name="$1" file="$2"
-  jq --arg t "$name" '
-    .sources |= map(select(.name != $t))
-    | .sources |= map(
-        if (.settings.items? | type) == "array"
-        then .settings.items |= map(select(.name != $t))
-        else . end)
-  ' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-}
-
-case "${STREAM_PLATFORM:-twitch}" in
-  # facebook, tiktok, and instagram get the same treatment as youtube: their
-  # content-matching (Meta's Rights Manager, TikTok/Instagram's audio ID) is as
-  # strike-happy as Content ID, so the SomaFM bed stays off and Car Hum plays.
-  youtube | facebook | tiktok | instagram)
-    strip_scene_source "Groove Salad Classic" "$scene_file"
-    echo "stripped 'Groove Salad Classic' (SomaFM); 'Car Hum' is the ${STREAM_PLATFORM} background audio"
-    ;;
-  *)
-    strip_scene_source "Car Hum" "$scene_file"
-    echo "stripped 'Car Hum'; 'Groove Salad Classic' (SomaFM) is the Twitch background audio"
-    ;;
-esac
+# Background audio: write the starting bed onto the single "Background Audio"
+# source. The bed defaults per platform (SomaFM on Twitch, the license-clean
+# carhum drone everywhere else — the split that used to be a source strip) and
+# cdk8s overrides it per (env, platform) with OBS_BACKGROUND_AUDIO. Any bed runs
+# on any platform, and the console switches it live over the WebSocket, so this
+# only picks where the stream starts.
+# shellcheck source=script/background-audio.sh
+source /opt/obs/script/background-audio.sh
+set_background_audio \
+  "${OBS_BACKGROUND_AUDIO:-$(default_background_audio "${STREAM_PLATFORM:-twitch}")}" \
+  "$scene_file"
 
 # Advanced Output mode reads encoder-specific settings from streamEncoder.json
 # in the profile dir. VAAPI's keys (vaapi_device, integer profile) don't

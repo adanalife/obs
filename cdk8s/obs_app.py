@@ -197,6 +197,14 @@ class ObsInstance(Construct):
                 if platform in env.obs_fps
                 else {}
             ),
+            # Which bed the "Background Audio" source starts on. Left unset the
+            # entrypoint picks its own per-platform default, so an env that
+            # doesn't care renders exactly as before.
+            **(
+                {"OBS_BACKGROUND_AUDIO": env.obs_background_audio[platform]}
+                if platform in env.obs_background_audio
+                else {}
+            ),
             **(extra_config or {}),
         }
         cm_name = f"{name}-config"
@@ -292,6 +300,29 @@ class ObsInstance(Construct):
             "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
             "containers": [container],
         }
+
+        # --- background-music share (album bed) ---
+        # The NFS-backed `obs-music` claim the infra repo provisions, mounted
+        # read-only at the path entrypoint.sh scans for tracks. Every platform's
+        # OBS mounts the same claim (ReadOnlyMany) — none of them write to it.
+        # Absent on k3d/local, where the album bed degrades to carhum.
+        if env.music_share:
+            container["volumeMounts"] = [
+                {
+                    "name": "music",
+                    "mountPath": "/opt/tripbot/assets/music",
+                    "readOnly": True,
+                }
+            ]
+            pod_spec["volumes"] = [
+                {
+                    "name": "music",
+                    "persistentVolumeClaim": {
+                        "claimName": "obs-music",
+                        "readOnly": True,
+                    },
+                }
+            ]
         if env.priority_class:
             pod_spec["priorityClassName"] = env.priority_class
         # OBS joins the rpi5 worker ONLY as a software encoder (no iGPU claim);
