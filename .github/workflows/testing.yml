@@ -24,6 +24,16 @@ permissions:
   contents: read
 
 jobs:
+  # Bed selection is pure bash + jq against the committed scene template, so it
+  # runs in seconds without waiting on the image build below.
+  background-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check background-audio bed selection
+        run: scripts/check-background-audio.sh
+
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30

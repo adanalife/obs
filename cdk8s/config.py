@@ -65,6 +65,19 @@ class EnvConfig:
     # portrait LIVE is unstable at 60fps.
     obs_fps: dict[str, int] = dataclasses.field(default_factory=dict)
     obs_cpu_request: str = "200m"
+    # Which background-audio bed each platform's OBS *starts* on: somafm (the
+    # Groove Salad Classic stream), carhum (the image-baked license-clean drone),
+    # or album (the mounted music share). Platforms left out fall back to
+    # entrypoint.sh's own default — somafm on twitch, carhum everywhere else,
+    # which is where every platform sat when the bed was a hardcoded per-platform
+    # strip. The bed is live-switchable from the console, so this only picks the
+    # starting point, not a policy.
+    obs_background_audio: dict[str, str] = dataclasses.field(default_factory=dict)
+    # Mount the read-only `obs-music` PVC (the NFS-backed album share the infra
+    # repo provisions). Only the minipc envs have that volume; k3d/local run
+    # without it and entrypoint.sh falls back to the carhum bed if asked for the
+    # album anyway.
+    music_share: bool = False
     priority_class: str = ""  # prod-stream on prod; "" elsewhere
     prefer_rpi5: bool = (
         False  # bias to the rpi5 worker (only when OBS is software-encoded)
@@ -122,6 +135,7 @@ ENVS: dict[str, EnvConfig] = {
         obs_fps={"tiktok": 30},
         obs_video_bitrate_kbps={"tiktok": 4000},
         obs_cpu_request="2",
+        music_share=True,
         priority_class="prod-stream",
         tailscale=True,
     ),
@@ -152,6 +166,7 @@ ENVS: dict[str, EnvConfig] = {
             "tiktok": 4000
         },  # known-good; 6000 plays back black on TikTok — see prod note
         obs_cpu_request="200m",
+        music_share=True,
         prefer_rpi5=True,
         tailscale=True,
     ),
@@ -180,8 +195,23 @@ ENVS: dict[str, EnvConfig] = {
 }
 
 
+# The beds entrypoint.sh knows how to write onto the "Background Audio" source.
+# A value outside this set makes OBS exit 1 at boot, so it's caught at synth.
+BACKGROUND_AUDIO_BEDS = ("somafm", "carhum", "album")
+
+
 # Guard: an env can only run platforms the gateway has an adapter for.
 for _name, _env in ENVS.items():
+    _bad_beds = {
+        p: b
+        for p, b in _env.obs_background_audio.items()
+        if b not in BACKGROUND_AUDIO_BEDS
+    }
+    if _bad_beds:
+        raise ValueError(
+            f"{_name}: obs_background_audio {_bad_beds} not in "
+            f"{BACKGROUND_AUDIO_BEDS} — see set_background_audio in entrypoint.sh"
+        )
     _unknown = tuple(p for p in _env.platforms if p not in SUPPORTED_PLATFORMS)
     if _unknown:
         raise ValueError(
