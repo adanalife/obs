@@ -96,11 +96,14 @@ set_background_audio() {
 
 # default_background_audio <platform>
 #
-# Where each platform starts when OBS_BACKGROUND_AUDIO is unset: the same split
-# that used to be a hardcoded per-platform source strip.
+# Where each platform starts when OBS_BACKGROUND_AUDIO is unset. TikTok gets the
+# licensed album — a music bed suits a short-attention-span feed better than a
+# drone, and unlike SomaFM it survives TikTok's audio ID. Everywhere else keeps
+# the safe drone; Twitch keeps SomaFM.
 default_background_audio() {
   case "${1:-twitch}" in
     twitch) echo somafm ;;
+    tiktok) echo album ;;
     *) echo carhum ;;
   esac
 }

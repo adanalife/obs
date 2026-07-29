@@ -35,6 +35,20 @@ for gone in "Groove Salad Classic" "Car Hum"; do
     fail "'$gone' still referenced in the scene (source or scene item)"
 done
 
+# The bed is audio-only, but a media source renders whatever video its file
+# carries — and every album track has a 360x360 embedded cover art frame, which
+# OBS drew over the dashcam. Hiding the scene item stops the audio with it, so
+# the item stays visible and parked past the far corner of both canvases
+# (1920x1080 landscape, 1080x1920 portrait, which the Vertical scene derives by
+# mapping (x,y) -> (1080-y, x)). Both coordinates past 1920 is off-canvas either
+# way round.
+item() { jq -r --arg n "$BACKGROUND_AUDIO_INPUT" \
+  '.sources[] | select(.name == "Main") | .settings.items[] | select(.name == $n) | '"$1" "$2"; }
+[[ $(item '.visible' "$scene") == true ]] ||
+  fail "background audio item must stay visible (hidden means silent)"
+(( $(item '.pos.x' "$scene") > 1920 && $(item '.pos.y' "$scene") > 1920 )) ||
+  fail "background audio item is on-canvas — its cover art will render on the stream"
+
 # somafm — a network stream: no local file, and it must keep the reconnect
 # settings that let it ride out a SomaFM edge blip.
 scene=$work/somafm.json
@@ -92,9 +106,10 @@ if set_background_audio wurlitzer "$scene" 2>/dev/null; then
   fail "unknown bed should be rejected"
 fi
 
-# Platform defaults — the behaviour the old per-platform source strip had.
+# Platform defaults.
 [[ $(default_background_audio twitch) == somafm ]] || fail "twitch should default to somafm"
-for p in youtube facebook tiktok instagram; do
+[[ $(default_background_audio tiktok) == album ]] || fail "tiktok should default to album"
+for p in youtube facebook instagram; do
   [[ $(default_background_audio "$p") == carhum ]] || fail "$p should default to carhum"
 done
 

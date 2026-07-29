@@ -29,6 +29,9 @@ processes:
   three beds: the SomaFM stream, a license-clean car-interior drone rendered at
   build time (`carhum/`), or an album from the mounted music share. Selected at
   startup by `OBS_BACKGROUND_AUDIO` and switchable live from the admin console.
+  The source is audio-only in intent but OBS renders any video its file carries
+  (album tracks embed cover art), so its scene item is parked off-canvas —
+  hiding it would stop the audio too.
 
 ## Layout
 
@@ -67,7 +70,7 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | --- | --- |
 | `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
 | `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, the default background-audio bed, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
-| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `somafm` on twitch, `carhum` elsewhere. Only the *starting* bed — tripbot rewrites the source live |
+| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `somafm` on twitch, `album` on tiktok, `carhum` elsewhere. Only the *starting* bed — tripbot rewrites the source live |
 | `OBS_VERTICAL` | force portrait output (`true`/`false`); overrides the per-platform default so any platform can be tested vertical. Portrait renders a generated `Vertical` scene — `Main` rotated 90° CW into a 1080×1920 canvas |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |

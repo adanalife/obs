@@ -68,10 +68,9 @@ class EnvConfig:
     # Which background-audio bed each platform's OBS *starts* on: somafm (the
     # Groove Salad Classic stream), carhum (the image-baked license-clean drone),
     # or album (the mounted music share). Platforms left out fall back to
-    # entrypoint.sh's own default — somafm on twitch, carhum everywhere else,
-    # which is where every platform sat when the bed was a hardcoded per-platform
-    # strip. The bed is live-switchable from the console, so this only picks the
-    # starting point, not a policy.
+    # entrypoint.sh's own default — somafm on twitch, album on tiktok, carhum
+    # everywhere else. The bed is live-switchable from the console, so this only
+    # picks the starting point, not a policy.
     obs_background_audio: dict[str, str] = dataclasses.field(default_factory=dict)
     # Mount the read-only `obs-music` PVC (the NFS-backed album share the infra
     # repo provisions). Only the minipc envs have that volume; k3d/local run
