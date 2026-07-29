@@ -13,6 +13,16 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.9.0] — 2026-07-29
+
+### Changed
+
+- TikTok now starts on the licensed album bed instead of the car-hum drone. Still switchable live from the console. ([#76](https://github.com/adanalife/obs/pull/76))
+
+### Fixed
+
+- Park the `Background Audio` scene item off-canvas so album tracks' embedded cover art stops rendering over the dashcam. Hiding the item is not an option — it stops the audio with it. ([#76](https://github.com/adanalife/obs/pull/76))
+
 ## [v2.8.2] — 2026-07-29
 
 ### Fixed
