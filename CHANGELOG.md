@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.8.1] — 2026-07-29
+
+### Fixed
+
+- The album background-audio bed now starts only on tracks from album subdirectories of the music share. Loose audio files at the share root — it also holds a 556MB `carsounds.m4a` — could be picked as the starting track. ([#72](https://github.com/adanalife/obs/pull/72))
+
 ## [v2.8.0] — 2026-07-29
 
 ### Changed
