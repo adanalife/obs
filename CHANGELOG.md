@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.8.2] — 2026-07-29
+
+### Fixed
+
+- A PreSync hook now asserts the `obs-music` claim is mountable before a sync tears the running OBS down. OBS deploys with strategy Recreate, so an unbound claim previously left the replacement pod Pending and the stream off the air; the gate fails the sync instead, leaving the live pod untouched. ([#74](https://github.com/adanalife/obs/pull/74))
+
 ## [v2.8.1] — 2026-07-29
 
 ### Fixed

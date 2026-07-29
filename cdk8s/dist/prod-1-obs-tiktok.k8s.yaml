@@ -71,7 +71,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: obs
-          image: ghcr.io/adanalife/obs:2.8.1
+          image: ghcr.io/adanalife/obs:2.8.2
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -155,7 +155,7 @@ spec:
           image: gcr.io/go-containerregistry/crane:v0.21.7
           args:
             - manifest
-            - ghcr.io/adanalife/obs:2.8.1
+            - ghcr.io/adanalife/obs:2.8.2
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
