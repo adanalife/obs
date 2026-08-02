@@ -6,12 +6,10 @@
 # image while still shipping procedurally-generated (not git-committed) audio.
 # Needs python3 with numpy+scipy importable and ffmpeg on PATH.
 #
-# The variant NAMES + COUNT here are a contract shared three ways:
-#   - this script (the `variants` list below)
-#   - the `carhum` builder stage + COPY in Dockerfile{,.arm64}
-#   - the carSounds registry in tripbot's pkg/chatbot/carsound.go
-#     (the !carsound command)
-# Keep all three in sync when adding/removing a variant.
+# The file NAMES here are a contract with tripbot: `beds.CarHumFile` selects the
+# idle drone and `beds.FallbackFile` the watchdog's copy of it, both by absolute
+# path inside the OBS container. Renaming either one here silences the bed.
+# Nothing selects the highway/backroad/mountain voicings.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,4 +37,16 @@ for v in $variants; do
   echo "   -> $flac"
 done
 
-echo "done: $(find "$out" -name '*.flac' | wc -l | tr -d ' ') variants in $out"
+# The audio watchdog's fallback bed: the idle drone under a second name.
+#
+# Identical audio, deliberately distinct path. The OBS background-audio source
+# records only what file it is playing, so that path is the only place able to
+# distinguish "an operator selected Car Hum" from "the audio watchdog fell back
+# to it during a SomaFM outage". Without the distinction a tripbot restart
+# mid-outage reads the fallback back as a chosen Car Hum bed and never returns
+# to SomaFM. A copy rather than a symlink because the COPY out of this stage
+# globs files, and a dangling link in the final image is silence.
+cp "$out/car-hum-idle.flac" "$out/car-hum-fallback.flac"
+echo "   -> $out/car-hum-fallback.flac (copy of idle)"
+
+echo "done: $(find "$out" -name '*.flac' | wc -l | tr -d ' ') files in $out"
