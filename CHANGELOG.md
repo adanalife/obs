@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.10.0] — 2026-08-02
+
+### Added
+
+- `car-hum-fallback.flac`, a copy of the idle drone at a distinct path, so tripbot can tell an operator-selected Car Hum bed from the audio watchdog's fallback to it. ([#79](https://github.com/adanalife/obs/pull/79))
+
 ## [v2.9.0] — 2026-07-29
 
 ### Changed
