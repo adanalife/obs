@@ -34,8 +34,10 @@ CARHUM_BED="${CARHUM_BED:-/opt/tripbot/assets/carhum/car-hum-idle.flac}"
 # archive), and a flat scan would shuffle that into the rotation as one enormous
 # "track". -mindepth 2 is the whole rule.
 #
-# ponytail: every album subdirectory is one pool — with one album that IS the
-# album. Add a picker when a second one shows up and they shouldn't interleave.
+# Any track under any album is a valid answer, because this only decides which
+# album the stream boots into: tripbot reads the playing file back off the source
+# on connect, takes the album from its path, and builds the play order from that
+# album alone. Picking across the whole share can't interleave albums.
 #
 # `|| true` because callers run under `set -euo pipefail` and an unmounted share
 # makes find exit non-zero — an empty result is a valid answer, not a failure.
