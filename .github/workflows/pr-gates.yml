@@ -114,7 +114,7 @@ jobs:
       # authoring code: re-synth and fail on any diff. Verify-only — the synth
       # is fast enough to run locally via `task cdk8s:synth`. The post-merge
       # sweep on main lives in cdk8s-synth.yml.
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v4.2.3
         if: steps.changed.outputs.cdk8s == 'true'
 
       - name: Synth
