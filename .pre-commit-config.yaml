@@ -54,14 +54,23 @@ repos:
         args: [--config, .github/linters/.markdown-lint.yml]
         exclude: '^\.github/towncrier-template\.md$'
 
-  # Python: ruff handles both lint and format (the cdk8s/ deploy-authoring layer
-  # is the only Python in the repo).
+  # Python: ruff handles both lint and format, over the cdk8s/ deploy-authoring
+  # layer, script/obs_server.py, and the bin/ helpers.
+  #
+  # The bin/ helpers are extensionless because they're commands rather than
+  # modules, so pre-commit only routes them here by reading their shebangs. That
+  # holds for `#!/usr/bin/env python3` and stops holding the moment one becomes a
+  # `#!/usr/bin/env -S uv run --script` — which is one step away, since both
+  # already document being run under `uv run --with obsws-python`. The explicit
+  # `files` pattern keeps them covered either way.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.8
     hooks:
       - id: ruff-check
         args: [--fix]
+        files: '(\.pyi?|^bin/[a-z0-9-]+)$'
       - id: ruff-format
+        files: '(\.pyi?|^bin/[a-z0-9-]+)$'
 
   # Conventional Commits — enforce `type(scope): summary` on commit messages so
   # history stays machine-parseable: it feeds the towncrier changelog fragments,
