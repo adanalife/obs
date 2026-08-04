@@ -8,10 +8,22 @@ updates:
   # without a workflow edit). Note: setting `labels` replaces Dependabot's
   # defaults, so the otherwise-automatic dependencies/ecosystem labels are
   # restated here.
+  #
+  # Minor and patch bumps batch into one PR per ecosystem. A major is left out
+  # of every group so a breaking change arrives on its own, attributable to a
+  # single dependency instead of hiding among a dozen safe ones. Security
+  # updates ignore groups entirely and always arrive alone.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: daily
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
     labels:
       - dependencies
       - github_actions
