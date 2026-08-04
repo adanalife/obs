@@ -38,3 +38,21 @@ updates:
       - dependencies
       - docker
       - skip-changelog
+  # The cdk8s authoring layer's Python dependencies, declared in
+  # pyproject.toml's dependency-groups and locked in uv.lock. Without this
+  # entry they take no updates at all, security included.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: daily
+    groups:
+      python:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+      - python
+      - skip-changelog
