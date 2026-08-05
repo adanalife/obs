@@ -19,7 +19,7 @@ jobs:
       # markdownlint). No Go toolchain — this repo ships a Docker image, not a
       # compiled binary.
       - uses: jdx/mise-action@v4
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version-file: .tool-versions
       # no-commit-to-branch guards local commits; in CI the checkout is the
