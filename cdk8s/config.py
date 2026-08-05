@@ -72,8 +72,8 @@ class EnvConfig:
     # everywhere else. The bed is live-switchable from the console, so this only
     # picks the starting point, not a policy.
     obs_background_audio: dict[str, str] = dataclasses.field(default_factory=dict)
-    # Mount the read-only `obs-music` PVC (the NFS-backed album share the infra
-    # repo provisions). Only the minipc envs have that volume; k3d/local run
+    # Mount the read-only `obs-music-local` PVC (the node-local album library the
+    # infra repo provisions). Only the minipc envs have that volume; k3d/local run
     # without it and entrypoint.sh falls back to the carhum bed if asked for the
     # album anyway.
     music_share: bool = False

@@ -35,6 +35,11 @@ CRANE_IMAGE = "gcr.io/go-containerregistry/crane:v0.21.7"
 # rather than introducing a second base to keep current.
 VOLUME_GATE_IMAGE = "ghcr.io/adanalife/mirror/ubuntu:24.04"
 
+# The album-bed claim, provisioned by the infra repo and mounted by tripbot too.
+# A cross-repo contract on the name: all three have to say the same thing, and a
+# mismatch leaves these pods Pending on an unbound claim.
+MUSIC_CLAIM = "obs-music-local"
+
 # The ephemeral arm64 rpi5 worker on the minipc cluster — taint repels by
 # default, board label is the affinity target. OBS opts in (stage only) ONLY
 # while it's a software encoder; a VAAPI OBS must stay on the MS-01's iGPU, so
@@ -186,8 +191,8 @@ def emit_volume_gate(
     What this can do is move the failure off the critical path: the gate pod
     mounts the claim and runs `true`, so an unbound claim leaves the GATE pod
     Pending instead, activeDeadlineSeconds fails the hook, and the sync aborts
-    with the running OBS untouched. Re-sync once `task k8s:<env>:nfs-pv` has
-    laid the PV down.
+    with the running OBS untouched. Re-sync once the claim exists — for the music
+    volume that means the infra repo's data/supporting unit has synced.
 
     Mounting is the whole assertion — no kubectl, no RBAC, no reading cluster
     state. The question "can a pod mount this?" is answered by trying.
@@ -411,9 +416,13 @@ class ObsInstance(Construct):
         }
 
         # --- background-music share (album bed) ---
-        # The NFS-backed `obs-music` claim the infra repo provisions, mounted
-        # read-only at the path entrypoint.sh scans for tracks. Every platform's
-        # OBS mounts the same claim (ReadOnlyMany) — none of them write to it.
+        # The node-local `obs-music-local` claim the infra repo provisions, mounted
+        # read-only at the path entrypoint.sh scans for tracks. Node-local and not
+        # the NAS on purpose: OBS plays the bed and composites the video in one
+        # process, so a share that stops answering blocks the render pipeline and
+        # takes the stream down with it — see the storage rule in the infra repo's
+        # cdk8s/adanalife_k8s/constructs/music.py. Every platform's OBS mounts the
+        # same claim, all on the one node that local-path volume lives on.
         # Absent on k3d/local, where the album bed degrades to carhum.
         if env.music_share:
             container["volumeMounts"] = [
@@ -427,7 +436,7 @@ class ObsInstance(Construct):
                 {
                     "name": "music",
                     "persistentVolumeClaim": {
-                        "claimName": "obs-music",
+                        "claimName": MUSIC_CLAIM,
                         "readOnly": True,
                     },
                 }
@@ -487,7 +496,7 @@ class ObsInstance(Construct):
                 name=name,
                 namespace=ns,
                 labels=labels,
-                claim_name="obs-music",
+                claim_name=MUSIC_CLAIM,
             )
 
         # --- Service ---

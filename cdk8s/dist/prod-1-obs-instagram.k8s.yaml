@@ -93,7 +93,7 @@ spec:
       volumes:
         - name: music
           persistentVolumeClaim:
-            claimName: obs-music
+            claimName: obs-music-local
             readOnly: true
       priorityClassName: prod-stream
 ---
@@ -200,7 +200,7 @@ spec:
       volumes:
         - name: gated
           persistentVolumeClaim:
-            claimName: obs-music
+            claimName: obs-music-local
             readOnly: true
 ---
 apiVersion: v1
