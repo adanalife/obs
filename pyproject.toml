@@ -12,8 +12,8 @@ dependencies = []
 [dependency-groups]
 # The k8s authoring layer (cdk8s/). Synth via `task cdk8s:synth`.
 cdk8s = [
-    "cdk8s>=2.70.75",
-    "constructs>=10.3",
+    "cdk8s>=2.70.86",
+    "constructs>=10.7.1",
     "pyyaml>=6.0.3",
 ]
 
