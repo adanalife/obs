@@ -13,6 +13,16 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.10.1] — 2026-08-05
+
+### Changed
+
+- The album bed now plays from a node-local volume instead of the NAS share. OBS composites video and plays the bed in one process, so a share that stopped answering blocked the whole render pipeline — on 2026-08-05 that took both prod streams dark for 9h41m while OBS reported itself as streaming and encoded zero frames. ([#93](https://github.com/adanalife/obs/pull/93))
+
+### CI / Tooling
+
+- ruff now covers the `bin/` helpers by an explicit path pattern rather than by pre-commit reading their shebangs, so they stay linted if one is ever converted to a `uv run --script` shebang. The comment claiming cdk8s was the only Python in the repo was already untrue — `script/obs_server.py` and both `bin/` helpers are Python too. ([#81](https://github.com/adanalife/obs/pull/81))
+
 ## [v2.10.0] — 2026-08-02
 
 ### Added
