@@ -1,0 +1,1 @@
+Layer an "under construction" roadwork slate (onscreens-server browser source) beneath the dashcam video, and clear the dashcam source when its stream ends — playout restarts and RTSP drops now show the slate instead of a black screen.
