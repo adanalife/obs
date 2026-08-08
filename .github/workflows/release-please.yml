@@ -11,10 +11,17 @@ name: release-please
 # Merging the release PR creates the vX.Y.Z tag + GitHub Release; release.yml is
 # then dispatched explicitly at that tag because GITHUB_TOKEN-created tags don't
 # fire push triggers.
+#
+# The manual trigger is the escape hatch for a stale release branch: release-please
+# only rebuilds the PR when a *releasable* commit lands, so a run of chore-only
+# merges leaves the branch on an old base — and any repo-state check that runs on
+# the release PR (the contract-sync gate) keeps failing against content main has
+# already fixed. Dispatching rebases it off current main.
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write # tag + GitHub Release + release-PR branch
