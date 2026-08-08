@@ -12,7 +12,7 @@ data:
   DASHCAM_RTSP_URL: rtsp://mediamtx-tiktok:8554/dashcam
   ONSCREENS_URL_BASE: http://onscreens-tiktok:8080
   OBS_WEBSOCKET_PASSWD: adanalife
-  OBS_QUALITY_PRESET: high
+  OBS_QUALITY_PRESET: low
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
   OBS_VIDEO_BITRATE: "4000"
   OBS_FPS_COMMON: "30"
@@ -64,7 +64,7 @@ spec:
         app.kubernetes.io/instance: obs-tiktok
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: fcd2759edd
+        adanalife.dev/config-hash: cbc5b44bb2
     spec:
       securityContext:
         seccompProfile:

@@ -161,7 +161,9 @@ ENVS: dict[str, EnvConfig] = {
         gpu=True,
         obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
-        obs_quality="high",
+        # 720p30 so a rehearsal scale-up here never costs prod's live encoders
+        # an iGPU slot — the minipc's budget is two.
+        obs_quality="low",
         obs_fps={"tiktok": 30},  # 1080p30 vertical — see prod note
         obs_video_bitrate_kbps={
             "tiktok": 4000

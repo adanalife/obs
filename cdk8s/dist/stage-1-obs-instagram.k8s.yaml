@@ -12,7 +12,7 @@ data:
   DASHCAM_RTSP_URL: rtsp://mediamtx-instagram:8554/dashcam
   ONSCREENS_URL_BASE: http://onscreens-instagram:8080
   OBS_WEBSOCKET_PASSWD: adanalife
-  OBS_QUALITY_PRESET: high
+  OBS_QUALITY_PRESET: low
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
   STREAM_PLATFORM: instagram
 ---
@@ -41,7 +41,7 @@ spec:
         app.kubernetes.io/instance: obs-instagram
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: 12dc7d9737
+        adanalife.dev/config-hash: e7e466a6eb
     spec:
       securityContext:
         seccompProfile:

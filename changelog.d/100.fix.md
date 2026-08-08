@@ -1,0 +1,1 @@
+stage-1 OBS boots at the `low` quality preset (720p30) instead of `high`, so scaling a stage platform up for a rehearsal never costs prod's live encoders one of the minipc's two iGPU slots. Every stage `obs-*` Deployment sits at 0 replicas, so this only changes what a future scale-up comes up as.

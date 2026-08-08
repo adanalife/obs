@@ -12,7 +12,7 @@ data:
   DASHCAM_RTSP_URL: rtsp://mediamtx-facebook:8554/dashcam
   ONSCREENS_URL_BASE: http://onscreens-facebook:8080
   OBS_WEBSOCKET_PASSWD: adanalife
-  OBS_QUALITY_PRESET: high
+  OBS_QUALITY_PRESET: low
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
   STREAM_PLATFORM: facebook
 ---
@@ -59,7 +59,7 @@ spec:
         app.kubernetes.io/instance: obs-facebook
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: d3d36523ed
+        adanalife.dev/config-hash: 2624ee6ce4
     spec:
       securityContext:
         seccompProfile:
