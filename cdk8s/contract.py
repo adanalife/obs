@@ -34,13 +34,11 @@ PORTS: list[tuple[str, int]] = [
 ]
 NOVNC_PORT = _PORTS["obs_novnc"]
 
-# The per-platform MediaMTX relay. Hand-declared: the relay is the infra repo's
-# construct and no generated contract carries its name or port yet.
-_MEDIAMTX_RTSP_PORT = 8554
-
 
 def dashcam_rtsp_url(platform: str) -> str:
-    return f"rtsp://mediamtx-{platform}:{_MEDIAMTX_RTSP_PORT}/dashcam"
+    return (
+        f"rtsp://{_SERVICES[f'mediamtx_{platform}']}:{_PORTS['mediamtx_rtsp']}/dashcam"
+    )
 
 
 def onscreens_url_base(platform: str) -> str:
