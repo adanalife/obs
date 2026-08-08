@@ -35,6 +35,11 @@ CRANE_IMAGE = "gcr.io/go-containerregistry/crane:v0.21.7"
 # rather than introducing a second base to keep current.
 VOLUME_GATE_IMAGE = "ghcr.io/adanalife/mirror/ubuntu:24.04"
 
+# How long the onscreens wait tolerates an unready backend before starting OBS
+# anyway (attempts × seconds).
+_ONSCREENS_WAIT_ATTEMPTS = 60
+_ONSCREENS_WAIT_INTERVAL = 2
+
 # The album-bed claim, provisioned by the infra repo and mounted by tripbot too.
 # A cross-repo contract on the name: all three have to say the same thing, and a
 # mismatch leaves these pods Pending on an unbound claim.
@@ -272,6 +277,52 @@ def emit_volume_gate(
     )
 
 
+def _onscreens_wait_container(
+    platform: str, *, image_ref: str, pull_policy: str
+) -> dict:
+    """InitContainer holding OBS back until its onscreens backend serves
+    /health/ready.
+
+    OBS's CEF browser sources fetch the overlays once, on first paint. Paint
+    against an unready onscreens-server and CEF caches the blank result; the FPS
+    cap keeps it from repainting, so the overlays stay blank until something
+    reloads them — up to an hour later. Waiting for the backend costs a few
+    seconds of startup and removes the race entirely.
+
+    Runs the OBS image itself: it is already being pulled for this pod and
+    already ships curl, so there is no second base image to keep current.
+
+    The wait is bounded, and a timeout starts OBS anyway. The failure this
+    guards is a startup race — onscreens coming up seconds behind OBS — and for
+    a 24/7 broadcast, OBS live with blank overlays beats OBS not live at all.
+    """
+    url = f"{contract.onscreens_url_base(platform)}/health/ready"
+    return {
+        "name": "wait-onscreens",
+        "image": image_ref,
+        "imagePullPolicy": pull_policy,
+        "command": ["sh", "-c"],
+        "args": [
+            f"for _ in $(seq {_ONSCREENS_WAIT_ATTEMPTS}); do "
+            f'curl -fsS -o /dev/null "{url}" && exit 0; '
+            f"sleep {_ONSCREENS_WAIT_INTERVAL}; done; "
+            f"echo 'onscreens not ready, starting OBS anyway' >&2"
+        ],
+        # The pod's securityContext carries only the seccomp profile (OBS itself
+        # needs root), so the restricted-profile fields ride on this container.
+        "securityContext": {
+            "allowPrivilegeEscalation": False,
+            "capabilities": {"drop": ["ALL"]},
+            "runAsNonRoot": True,
+            "runAsUser": 65532,
+        },
+        "resources": {
+            "requests": {"cpu": "10m", "memory": "16Mi"},
+            "limits": {"memory": "64Mi"},
+        },
+    }
+
+
 class ObsInstance(Construct):
     def __init__(
         self,
@@ -412,6 +463,13 @@ class ObsInstance(Construct):
         # Recreate: one Wayland/VNC owner, no overlapping handoff.
         pod_spec: dict = {
             "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
+            "initContainers": [
+                _onscreens_wait_container(
+                    platform,
+                    image_ref=image_ref,
+                    pull_policy=env.pull_policy_for("obs"),
+                )
+            ],
             "containers": [container],
         }
 

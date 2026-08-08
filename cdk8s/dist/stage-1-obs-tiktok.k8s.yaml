@@ -69,6 +69,28 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-onscreens
+          image: ghcr.io/adanalife/obs:main
+          imagePullPolicy: Always
+          command:
+            - sh
+            - -c
+          args:
+            - for _ in $(seq 60); do curl -fsS -o /dev/null "http://onscreens-tiktok:8080/health/ready" && exit 0; sleep 2; done; echo 'onscreens not ready, starting OBS anyway' >&2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 65532
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
       containers:
         - name: obs
           image: ghcr.io/adanalife/obs:main
