@@ -44,7 +44,7 @@ processes:
 | `script/` | in-image startup scripts (sway, wayvnc, noVNC, obs-server) |
 | `scripts/` | repo tooling, not baked into the image (`check-changelog-fragment.sh`, the pre-push changelog guard) — note the near-identical name to `script/` above |
 | `supervisor/` | per-process supervisord configs |
-| `bin/` | `obs-browser-refresh`, `obs-media-restart` (host/in-image Python helpers) |
+| `bin/` | `obs-browser-refresh`, `obs-media-restart`, `obs-input-repoint` (host/in-image Python helpers) |
 | `carhum/` | car-hum FLAC generator (build-time only) |
 | `assets/` | Twitch overlay PNGs baked into the image |
 | `desktop-profiles/` | reference OBS Studio profiles for local desktop (macOS/Windows) |

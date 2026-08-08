@@ -1,0 +1,1 @@
+`bin/obs-input-repoint` — reads an OBS source's current input URL (the rollback value), then repoints it at a new one over obs-websocket. Built for swapping the Dashcam source between the MediaMTX relay and vlc-server mid-incident. Runtime-only: the declarative default stays `cdk8s/contract.py`'s `dashcam_rtsp_url()`.
