@@ -1,14 +1,15 @@
 name: platforms-contract
 
-# Guards the fleet-wide platform-set contract: platform-gateway owns
-# platforms.json (its Go adapter registry is the source of truth) and every repo
-# syncs a copy via `task platforms:sync`. This asserts the synced copy still
-# matches the gateway's main — catching both a stale local copy and the gateway
-# adding/removing a platform we haven't re-synced.
+# Guards the generated contracts this repo syncs copies of: platforms.json (the
+# fleet-wide platform set, owned by platform-gateway's Go adapter registry) and
+# contract.json (canonical service names, ports and env-var keys, owned by
+# tripbot's pkg/contract). This asserts each synced copy still matches its
+# owner's main — catching both a stale local copy and an upstream change we
+# haven't re-synced.
 #
-# The daily schedule is the point of this workflow: gateway-side drift lands
-# with no PR here to notice it. The PR-time check is a step of the `gates` job
-# in pr-gates.yml.
+# The daily schedule is the point of this workflow: upstream drift lands with no
+# PR here to notice it. The PR-time checks are steps of the `gates` job in
+# pr-gates.yml.
 on:
   push:
     branches:
@@ -53,3 +54,16 @@ jobs:
             exit 1
           fi
           rm -f gateway-platforms.json
+
+      # tripbot is public, so GITHUB_TOKEN reads it — no app token needed.
+      - name: Assert contract.json matches tripbot/main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository_owner }}/tripbot/contents/pkg/contract/contract.json?ref=main" \
+            -H "Accept: application/vnd.github.raw" > tripbot-contract.json
+          if ! diff -u tripbot-contract.json contract.json; then
+            echo "::error::contract.json is out of sync with tripbot/main — run 'task contract:sync' and commit."
+            exit 1
+          fi
+          rm -f tripbot-contract.json

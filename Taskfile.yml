@@ -44,6 +44,15 @@ tasks:
     cmds:
       - bash scripts/check-background-audio.sh
 
+  # contract.json is the canonical service-name/port/env-key vocabulary, owned
+  # by tripbot (generated from its pkg/contract Go constants) and synced into
+  # this repo. cdk8s/contract.py reads it for the onscreens service names and
+  # OBS's own container ports; never hand-edit it here.
+  contract:sync:
+    desc: Re-sync contract.json from the sibling tripbot checkout (the source of truth)
+    cmds:
+      - cp ../tripbot/pkg/contract/contract.json contract.json
+
   # platforms.json is the fleet-wide supported-platform set, owned by
   # platform-gateway (its Go adapter registry is the source of truth) and synced
   # into this repo. cdk8s reads it into SUPPORTED_PLATFORMS; never hand-edit it here.
