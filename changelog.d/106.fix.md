@@ -1,0 +1,1 @@
+Pull the dashcam RTSP feed over TCP instead of ffmpeg's default UDP — lost RTP packets under node CPU contention truncated frames mid-bitstream, smearing the bottom of the dashcam video with concealment artifacts on every platform.
