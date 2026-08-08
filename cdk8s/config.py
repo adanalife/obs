@@ -114,10 +114,12 @@ ENVS: dict[str, EnvConfig] = {
         # the prod Facebook Live ingest (SM k8s/obs/facebook-stream-key) once
         # scaled up; Dana takes it public from Facebook Live Producer. The iGPU
         # budget is two live encoders, so mind what holds a VAAPI slot before
-        # scaling a second one up. tiktok streams the 9:16 vertical scene to a
-        # per-session RTMP target — its ingest URL + key come from the Streamlabs
-        # TikTok API, seeded into the stream-key secret (SM
-        # k8s/obs/tiktok-stream-{server,key}, adanalife-prod). instagram
+        # scaling a second one up. tiktok streams the 9:16 vertical scene to the
+        # account-stable Streamlabs portrait restream ingest — that server plus
+        # the per-account portrait key are seeded once into the stream-key secret
+        # (SM k8s/obs/tiktok-stream-{server,key}, adanalife-prod) and a go-live
+        # touches neither; gateway-tiktok refreshes the Streamlabs relay target
+        # per broadcast on its own. instagram
         # synthesizes here too (born parked, no obs_streaming) — it waits on its
         # own stream key before a console scale-up brings it live.
         platforms=SUPPORTED_PLATFORMS,
