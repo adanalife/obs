@@ -13,6 +13,30 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.11.0] — 2026-08-08
+
+### Changed
+
+- cdk8s now reads service names and OBS container ports from `contract.json`, synced from tripbot via `task contract:sync`, instead of restating them by hand. A CI gate asserts the synced copy matches tripbot main. ([#101](https://github.com/adanalife/obs/pull/101))
+- Every platform except Twitch now starts on the licensed album bed rather than the car-hum drone — YouTube, Facebook and Instagram join TikTok, which already did. Twitch keeps SomaFM. The drone remains the automatic fallback when the music share has no tracks, so envs without the PVC are unaffected. Still switchable live from the console. ([#105](https://github.com/adanalife/obs/pull/105))
+- cdk8s now reads the per-platform MediaMTX relay's Service name and RTSP port from `contract.json` instead of building them by hand. Rendered manifests are unchanged. ([#109](https://github.com/adanalife/obs/pull/109))
+
+### Fixed
+
+- OBS now waits for its onscreens backend's `/health/ready` before starting, via an initContainer on the Deployment. CEF browser sources paint the overlays once at startup, so painting against an unready backend cached a blank result that persisted until the next refresh. ([#96](https://github.com/adanalife/obs/pull/96))
+- Set `runAsNonRoot` on the PreSync image gate pod, so it conforms to the `restricted` PodSecurity profile the pinned namespaces run. ([#97](https://github.com/adanalife/obs/pull/97))
+- stage-1 OBS boots at the `low` quality preset (720p30) instead of `high`, so scaling a stage platform up for a rehearsal never costs prod's live encoders one of the minipc's two iGPU slots. Every stage `obs-*` Deployment sits at 0 replicas, so this only changes what a future scale-up comes up as. ([#100](https://github.com/adanalife/obs/pull/100))
+- Pull the dashcam RTSP feed over TCP instead of ffmpeg's default UDP — lost RTP packets under node CPU contention truncated frames mid-bitstream, smearing the bottom of the dashcam video with concealment artifacts on every platform. ([#106](https://github.com/adanalife/obs/pull/106))
+
+### CI / Tooling
+
+- The release-please workflow can be triggered manually, so a release branch left on an old base by chore-only merges can be rebased off current `main` without waiting for the next releasable commit. ([#108](https://github.com/adanalife/obs/pull/108))
+
+### Misc
+
+- Describe tiktok's ingest as the account-stable Streamlabs portrait restream target in the cdk8s env config comment. ([#95](https://github.com/adanalife/obs/pull/95))
+- Re-sync `contract.json` from tripbot main, which now carries the per-platform MediaMTX service names and the RTSP port. ([#107](https://github.com/adanalife/obs/pull/107))
+
 ## [v2.10.1] — 2026-08-05
 
 ### Changed
