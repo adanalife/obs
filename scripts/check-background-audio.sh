@@ -106,11 +106,11 @@ if set_background_audio wurlitzer "$scene" 2>/dev/null; then
   fail "unknown bed should be rejected"
 fi
 
-# Platform defaults.
+# Platform defaults. Twitch is the one platform SomaFM is tolerated on; every
+# other platform's audio ID would strike it, so they start on the album.
 [[ $(default_background_audio twitch) == somafm ]] || fail "twitch should default to somafm"
-[[ $(default_background_audio tiktok) == album ]] || fail "tiktok should default to album"
-for p in youtube facebook instagram; do
-  [[ $(default_background_audio "$p") == carhum ]] || fail "$p should default to carhum"
+for p in youtube facebook tiktok instagram; do
+  [[ $(default_background_audio "$p") == album ]] || fail "$p should default to album"
 done
 
 echo "background-audio: all beds OK"

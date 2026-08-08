@@ -70,7 +70,7 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | --- | --- |
 | `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
 | `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, the default background-audio bed, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
-| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `somafm` on twitch, `album` on tiktok, `carhum` elsewhere. Only the *starting* bed — tripbot rewrites the source live |
+| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `somafm` on twitch, `album` everywhere else (falling back to `carhum` when the music share has no tracks). Only the *starting* bed — tripbot rewrites the source live |
 | `OBS_VERTICAL` | force portrait output (`true`/`false`); overrides the per-platform default so any platform can be tested vertical. Portrait renders a generated `Vertical` scene — `Main` rotated 90° CW into a 1080×1920 canvas |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |
