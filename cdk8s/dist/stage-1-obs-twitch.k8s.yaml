@@ -12,7 +12,7 @@ data:
   DASHCAM_RTSP_URL: rtsp://mediamtx-twitch:8554/dashcam
   ONSCREENS_URL_BASE: http://onscreens-twitch:8080
   OBS_WEBSOCKET_PASSWD: adanalife
-  OBS_QUALITY_PRESET: high
+  OBS_QUALITY_PRESET: low
   OBS_STREAM_ENCODER: ffmpeg_vaapi_tex
 ---
 apiVersion: apps/v1
@@ -40,7 +40,7 @@ spec:
         app.kubernetes.io/instance: obs-twitch
         app.kubernetes.io/part-of: tripbot
       annotations:
-        adanalife.dev/config-hash: 4609bcb0af
+        adanalife.dev/config-hash: 2b17a97555
     spec:
       securityContext:
         seccompProfile:
