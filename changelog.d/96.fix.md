@@ -1,0 +1,1 @@
+OBS now waits for its onscreens backend's `/health/ready` before starting, via an initContainer on the Deployment. CEF browser sources paint the overlays once at startup, so painting against an unready backend cached a blank result that persisted until the next refresh.
