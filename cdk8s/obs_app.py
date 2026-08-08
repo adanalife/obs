@@ -151,7 +151,17 @@ def emit_image_gate(
                 "spec": {
                     "restartPolicy": "Never",
                     "nodeSelector": {"kubernetes.io/arch": "amd64"},
-                    "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
+                    # The `restricted` PodSecurity profile these namespaces run
+                    # requires runAsNonRoot as a spec field, whatever USER the
+                    # image declares — without it the gate is a violation, which
+                    # would fail PreSync for a reason unrelated to the image.
+                    # 65532 is crane's own default uid; it only reads the
+                    # registry, so the uid is free to state explicitly.
+                    "securityContext": {
+                        "runAsNonRoot": True,
+                        "runAsUser": 65532,
+                        "seccompProfile": {"type": "RuntimeDefault"},
+                    },
                     "containers": [
                         {
                             "name": "image-gate",
