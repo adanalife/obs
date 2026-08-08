@@ -98,14 +98,16 @@ set_background_audio() {
 
 # default_background_audio <platform>
 #
-# Where each platform starts when OBS_BACKGROUND_AUDIO is unset. TikTok gets the
-# licensed album — a music bed suits a short-attention-span feed better than a
-# drone, and unlike SomaFM it survives TikTok's audio ID. Everywhere else keeps
-# the safe drone; Twitch keeps SomaFM.
+# Where each platform starts when OBS_BACKGROUND_AUDIO is unset. Everywhere
+# SomaFM can't go gets the licensed album: it survives every platform's audio ID
+# the way the drone does, and a slow-tv stream carrying music reads as a channel
+# rather than as something broken. Twitch keeps SomaFM, on the empirical
+# tolerance described above. The drone is still the safety net rather than a
+# default — set_background_audio falls back to it when the share has no tracks,
+# which is how the envs without the music PVC (development, local) boot.
 default_background_audio() {
   case "${1:-twitch}" in
     twitch) echo somafm ;;
-    tiktok) echo album ;;
-    *) echo carhum ;;
+    *) echo album ;;
   esac
 }
