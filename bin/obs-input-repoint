@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+# pylint: disable=invalid-name,duplicate-code
+"""Repoint an OBS media source at a different input URL via obs-websocket.
+
+The incident use is swapping the Dashcam source between the MediaMTX relay
+(rtsp://mediamtx-<platform>/dashcam) and vlc-server (rtsp://vlc-<platform>/...)
+without editing the scene collection or restarting the pod.
+
+This is a RUNTIME override only. It is not restart-safe: OBS reloads its scene
+collection from config/Tripbot.json.tmpl on boot, so the pod reverts to the
+declarative default on the next restart. That default is
+cdk8s/contract.py's dashcam_rtsp_url() — change it there to make a repoint
+stick.
+
+Called with no URL it only reads, which is the safe way to capture the current
+value before a change.
+
+Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 \\
+         ./bin/obs-input-repoint [NEW_URL] [SOURCE_NAME]
+
+  NEW_URL      new value for the source's "input" setting; omit to only read
+  SOURCE_NAME  OBS input to repoint (default: Dashcam)
+"""
+
+import os
+import sys
+
+try:
+    import obsws_python as obs
+except ImportError:
+    print(
+        "obsws-python not found — run via: uv run --with obsws-python bin/obs-input-repoint",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+new_url = sys.argv[1] if len(sys.argv) > 1 else None
+source = sys.argv[2] if len(sys.argv) > 2 else "Dashcam"
+
+host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
+port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
+password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+
+try:
+    with obs.ReqClient(host=host, port=port, password=password, timeout=10) as client:
+        current = client.get_input_settings(source).input_settings.get("input")
+        print(f"ROLLBACK VALUE — {source}.input is currently: {current}")
+        if new_url is None:
+            print("No NEW_URL given — read-only, nothing changed.")
+            sys.exit(0)
+        # overlay=True merges into the existing settings rather than replacing
+        # them, so reconnect_delay_sec/buffering_mb/etc. survive the repoint.
+        client.set_input_settings(source, {"input": new_url}, overlay=True)
+        confirmed = client.get_input_settings(source).input_settings.get("input")
+        print(f"Repointed {source} to: {confirmed}")
+        if confirmed != new_url:
+            print(
+                f"WARNING: OBS reports {confirmed!r}, expected {new_url!r}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+except ConnectionRefusedError:
+    print(
+        f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+except Exception as e:  # pylint: disable=broad-except
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
