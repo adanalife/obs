@@ -66,6 +66,15 @@ tasks:
     cmds:
       - uv run --group cdk8s python cdk8s/main.py
 
+  # Invariants over the synthed manifests, read from the committed dist. Distinct
+  # from cdk8s-synth's golden diff: that proves dist matches the code, this proves
+  # neither has broken a rule (nothing but noVNC on an Ingress, every OBS born
+  # parked). Re-synth first if config changed, or the assertions read stale dist.
+  test:
+    desc: Check the synthed manifests hold their invariants
+    cmds:
+      - uv run --group cdk8s --group dev pytest -q
+
   # Changelog (towncrier). Fragments live in changelog.d/; assembled into
   # CHANGELOG.md at release time. Run on the host via uvx — no project dep.
   changelog:add:

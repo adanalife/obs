@@ -24,6 +24,20 @@ permissions:
   contents: read
 
 jobs:
+  # Invariants over the committed cdk8s/dist/. Seconds, no image build: the
+  # cdk8s-synth workflow proves dist matches the code, and this proves neither has
+  # broken a rule that a plausible-looking golden diff would otherwise carry
+  # through — nothing but noVNC on an Ingress, every OBS born parked.
+  manifests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - uses: astral-sh/setup-uv@v9.0.0 # no floating major tag published
+      - name: Check manifest invariants
+        run: uv run --group cdk8s --group dev pytest -q
+
   # Bed selection is pure bash + jq against the committed scene template, so it
   # runs in seconds without waiting on the image build below.
   background-audio:
