@@ -2,8 +2,8 @@
 # pylint: disable=invalid-name,duplicate-code
 """Restart all OBS media sources (ffmpeg_source / vlc_source) via obs-websocket.
 
-Useful after a vlc-server restart to force OBS to reconnect to the RTSP
-stream rather than waiting for its own retry timer.
+Useful after the RTSP source restarts (a playout or MediaMTX bounce) to force
+OBS to reconnect rather than waiting for its own retry timer.
 
 Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-media-restart
 """

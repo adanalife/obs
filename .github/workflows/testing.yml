@@ -1,6 +1,6 @@
 # PR + branch smoke test: build the amd64 image and prove it boots to a healthy
 # state with no STREAM_KEY. Standalone (no docker-compose) — the OBS container
-# doesn't need VLC to start or pass its healthcheck: the healthcheck only checks
+# doesn't need a dashcam relay to start or pass its healthcheck: it only checks
 # the OBS process, the Wayland session, and the absence of the safe-mode crash
 # modal. Browser/RTSP sources retry on missing peers without crashing OBS.
 #

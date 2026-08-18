@@ -2,14 +2,16 @@
 
 The OBS container that streams the [A Dana Life](https://twitch.tv/ADanaLife_)
 dashcam slow-TV broadcast. It runs a headless [OBS Studio](https://obsproject.com)
-that composites the VLC-served dashcam video plus the onscreen overlays and
-pushes the result to Twitch / YouTube.
+that composites the dashcam video plus the onscreen overlays and pushes the
+result to Twitch / YouTube. The dashcam feed arrives over RTSP from the
+per-platform [MediaMTX](https://github.com/bluenviron/mediamtx) relay that
+[playout](https://github.com/adanalife/playout) publishes into.
 
 This image was extracted from the [tripbot](https://github.com/adanalife/tripbot)
 monorepo (with full git history) and published as `ghcr.io/adanalife/obs`. The
-Go side of the system — the chat bot, the `vlc-server`, the `onscreens-server`,
-and the OBS **watchdog/websocket client** (`pkg/obs` in tripbot) — stays in
-tripbot. This repo owns only the OBS *image* and its deployment.
+Go side of the system — the chat bot, the `onscreens-server`, and the OBS
+**watchdog/websocket client** (`pkg/obs` in tripbot) — stays in tripbot. This
+repo owns only the OBS *image* and its deployment.
 
 ## What's in the image
 
@@ -75,8 +77,8 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |
 | `OBS_STREAM_ENCODER` | encoder selection (e.g. VAAPI vs x264) |
-| `DASHCAM_RTSP_URL` | the VLC-served dashcam RTSP source |
-| `VLC_URL_BASE` / `ONSCREENS_URL_BASE` | the VLC + onscreens HTTP bases for browser sources |
+| `DASHCAM_RTSP_URL` | the per-platform MediaMTX relay the dashcam arrives on (`rtsp://mediamtx-<platform>:8554/dashcam`) |
+| `ONSCREENS_URL_BASE` | the onscreens HTTP base for browser sources |
 
 ## The tripbot contract (the one coupling that survives the split)
 
