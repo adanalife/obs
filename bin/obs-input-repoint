@@ -2,9 +2,9 @@
 # pylint: disable=invalid-name,duplicate-code
 """Repoint an OBS media source at a different input URL via obs-websocket.
 
-The incident use is swapping the Dashcam source between the MediaMTX relay
-(rtsp://mediamtx-<platform>/dashcam) and vlc-server (rtsp://vlc-<platform>/...)
-without editing the scene collection or restarting the pod.
+The incident use is pointing the Dashcam source at a different relay — another
+platform's MediaMTX, or one reachable while the usual one is down — without
+editing the scene collection or restarting the pod.
 
 This is a RUNTIME override only. It is not restart-safe: OBS reloads its scene
 collection from config/Tripbot.json.tmpl on boot, so the pod reverts to the
