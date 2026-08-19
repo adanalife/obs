@@ -15,7 +15,13 @@ scene mutation, nothing written to OBS — safe against the live stream.
 Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-screenshot-check
 
   OBS_SCREENSHOT_MIN_BYTES  PNGs smaller than this fail (default 1000)
+  OBS_SCREENSHOT_SKIP       comma-separated source names to skip — for overlays
+                            that are legitimately blank most of the time
+                            (e.g. "Middle Text Onscreen - Center")
   SCREENSHOT_DIR            dump each PNG here for eyeballing (default: no files)
+
+Audio-only sources (0×0 transform) are skipped automatically — OBS can't
+render a screenshot of them.
 """
 
 import base64
@@ -41,19 +47,29 @@ port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
 password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
 min_bytes = int(os.environ.get("OBS_SCREENSHOT_MIN_BYTES", "1000"))
 dump_dir = os.environ.get("SCREENSHOT_DIR")
+skip_names = {
+    s.strip() for s in os.environ.get("OBS_SCREENSHOT_SKIP", "").split(",") if s.strip()
+}
 
 
-def source_names(client, scene):
-    """Every source in `scene`, including the members of its groups.
+def scene_sources(client, scene):
+    """(name, item) for every source in `scene`, including group members.
 
     OBS doesn't allow groups inside groups, so one level down is the whole tree.
     """
     for item in client.get_scene_item_list(scene).scene_items:
-        yield item["sourceName"]
+        yield item["sourceName"], item
         if item.get("isGroup"):
             group = client.get_group_scene_item_list(item["sourceName"]).scene_items
             for child in group:
-                yield child["sourceName"]
+                yield child["sourceName"], child
+
+
+def renders_video(item):
+    """Audio-only sources have a 0×0 transform and can't render a screenshot
+    (GetSourceScreenshot returns code 702 on them)."""
+    t = item.get("sceneItemTransform", {})
+    return t.get("sourceWidth", 0) > 0 and t.get("sourceHeight", 0) > 0
 
 
 def capture(client, name):
@@ -76,7 +92,13 @@ try:
             os.makedirs(dump_dir, exist_ok=True)
 
         failed = []
-        for name in source_names(client, scene):
+        for name, item in scene_sources(client, scene):
+            if name in skip_names:
+                print(f"SKIP  {name:<28} (OBS_SCREENSHOT_SKIP)")
+                continue
+            if not renders_video(item):
+                print(f"SKIP  {name:<28} (no video)")
+                continue
             try:
                 png = capture(client, name)
             except Exception as e:  # pylint: disable=broad-except
