@@ -13,6 +13,26 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.12.0] — 2026-08-19
+
+### Added
+
+- `bin/obs-input-repoint` — reads an OBS source's current input URL (the rollback value), then repoints it at a new one over obs-websocket. Built for swapping the Dashcam source between the MediaMTX relay and vlc-server mid-incident. Runtime-only: the declarative default stays `cdk8s/contract.py`'s `dashcam_rtsp_url()`. ([#99](https://github.com/adanalife/obs/pull/99))
+- `bin/obs-screenshot-check` — screenshots every source in the live OBS scene over obs-websocket and fails on the blank ones, turning the manual overlay-debugging trick into a release-acceptance gate. A crashed browser_source comes back as a transparent PNG of a couple hundred bytes; anything under `OBS_SCREENSHOT_MIN_BYTES` (default 1000) is a failure, as is a source that can't be screenshotted at all. Read-only, so it's safe against the live stream. Set `SCREENSHOT_DIR` to keep the PNGs. ([#119](https://github.com/adanalife/obs/pull/119))
+- `bin/obs-stream-key-rotate` — swaps the stream key on a running OBS over obs-websocket, so a key rotation no longer needs a pod restart and the stream gap that comes with it. Prints the current settings with the key masked first (the rollback breadcrumb), takes the new key from `$NEW_STREAM_KEY` or stdin rather than argv, and reports whether the output was live during the swap. `--dry-run` reads without writing. Runtime-only: the seeded secret still wins on the next restart. ([#120](https://github.com/adanalife/obs/pull/120))
+
+### CI / Tooling
+
+- The changelog-fragment numbering workflow now fails loudly when it cannot diff against the base commit, instead of reporting success having numbered nothing. ([#116](https://github.com/adanalife/obs/pull/116))
+- Schema-validate the synthed `cdk8s/dist/` manifests with kubeconform, in both the PR-time gate and the main-branch synth backstop. ([#118](https://github.com/adanalife/obs/pull/118))
+
+### Misc
+
+- Re-sync `contract.json` from tripbot main, which now carries the NATS Service name and client port. Nothing here reads them; the sync keeps the drift gate green. ([#110](https://github.com/adanalife/obs/pull/110))
+- The weekly super-linter sweep reports each validator as its own commit status again, instead of 403ing on every one. ([#114](https://github.com/adanalife/obs/pull/114))
+- Drop the last references to `vlc-server` from the README and the in-repo comments. It was retired 2026-07-17 and replaced by [playout](https://github.com/adanalife/playout); the Dashcam source has read from the per-platform MediaMTX relay since [#29](https://github.com/adanalife/obs/pull/29). The README also documented `VLC_URL_BASE`, which that same PR deleted — the env-var table now lists only `ONSCREENS_URL_BASE`. ([#115](https://github.com/adanalife/obs/pull/115))
+- The synthed manifests now carry two asserted invariants, checked in CI: no Ingress may publish anything but noVNC, and every OBS Deployment must be born parked at `replicas: 0`. `cdk8s-synth` already proves `dist/` matches the code and says nothing about whether either is right — a flip in one of those values reads as a plausible one-word golden diff. Publishing obs-server would put `POST /admin/shutdown`, which restarts the container feeding the live stream, on a public hostname. ([#117](https://github.com/adanalife/obs/pull/117))
+
 ## [v2.11.0] — 2026-08-08
 
 ### Changed
