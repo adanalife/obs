@@ -158,3 +158,19 @@ jobs:
       - name: Verify dist/ is committed in sync
         if: steps.changed.outputs.cdk8s == 'true'
         run: git diff --exit-code cdk8s/dist/
+
+      # Schema-validate the synthed *.k8s.yaml (what Argo applies) against the
+      # cluster's k8s API version — catches API-version drift after a k8s
+      # bump. CRD kinds resolve via the datree CRDs-catalog. dist/apps/*.json
+      # is excluded: it's metadata for infra's ApplicationSet git-files
+      # generator, not a k8s manifest.
+      # -kubernetes-version tracks the live cluster; bump it with talos upgrades.
+      - name: Validate manifests (kubeconform)
+        if: steps.changed.outputs.cdk8s == 'true'
+        run: |
+          mise exec -- kubeconform -strict -summary \
+            -kubernetes-version 1.36.0 \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -ignore-missing-schemas \
+            cdk8s/dist/*.k8s.yaml

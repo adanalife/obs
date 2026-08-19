@@ -3,3 +3,4 @@
 # Python/bash/config baked in) — there is no compiled application toolchain.
 python 3.13
 node 24
+kubeconform 0.8.0

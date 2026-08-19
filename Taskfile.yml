@@ -66,6 +66,21 @@ tasks:
     cmds:
       - uv run --group cdk8s python cdk8s/main.py
 
+  # Schema-validates the committed *.k8s.yaml against the cluster's k8s API
+  # version. dist/apps/*.json is excluded: it's metadata for infra's
+  # ApplicationSet git-files generator, not a k8s manifest. Re-synth first
+  # (task cdk8s:synth) if config changed, or this reads stale dist.
+  cdk8s:validate:
+    desc: Schema-validate the synthed manifests in cdk8s/dist/ with kubeconform
+    cmds:
+      - |
+        mise exec -- kubeconform -strict -summary \
+          -kubernetes-version 1.36.0 \
+          -schema-location default \
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{`{{.Group}}`}}/{{`{{.ResourceKind}}`}}_{{`{{.ResourceAPIVersion}}`}}.json' \
+          -ignore-missing-schemas \
+          cdk8s/dist/*.k8s.yaml
+
   # Invariants over the synthed manifests, read from the committed dist. Distinct
   # from cdk8s-synth's golden diff: that proves dist matches the code, this proves
   # neither has broken a rule (nothing but noVNC on an Ingress, every OBS born
