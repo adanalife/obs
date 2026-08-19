@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+# pylint: disable=invalid-name,duplicate-code
+"""Swap the stream key on a running OBS via obs-websocket.
+
+The incident use is rotating a leaked or expired stream key without re-seeding
+the secret and restarting the pod — a restart drops the stream, this does not.
+
+This is a RUNTIME override only. It is not restart-safe: OBS reloads its stream
+service settings on boot, so the pod reverts to the seeded secret on the next
+restart. Rotate the seeded secret too, or the next restart undoes this.
+
+Whether an already-running output picks the new key up, or whether it only
+applies to the next StartStream, is what the GetStreamStatus line below reports:
+it says whether the output was live when the swap landed.
+
+The new key comes from $NEW_STREAM_KEY or stdin, never argv — argv is visible
+in `ps`. Only a masked prefix is ever printed; the full key stays out of stdout,
+logs and shell history.
+
+Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 \\
+         NEW_STREAM_KEY=... ./bin/obs-stream-key-rotate [--dry-run]
+
+  --dry-run  read and print the current settings, then stop without writing
+"""
+
+import os
+import sys
+
+try:
+    import obsws_python as obs
+except ImportError:
+    print(
+        "obsws-python not found — run via: uv run --with obsws-python bin/obs-stream-key-rotate",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+def mask(key):
+    """Render enough of a key to recognise it, never enough to use it."""
+    if not key:
+        return "(empty)"
+    return f"{key[:4]}… ({len(key)} chars)" if len(key) > 8 else f"… ({len(key)} chars)"
+
+
+args = sys.argv[1:]
+dry_run = "--dry-run" in args
+if [a for a in args if a != "--dry-run"]:
+    print(
+        "Unexpected argument — the key comes from $NEW_STREAM_KEY or stdin, "
+        "never argv (argv is visible in `ps`).",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+new_key = os.environ.get("NEW_STREAM_KEY") or ""
+if not new_key and not dry_run and not sys.stdin.isatty():
+    new_key = sys.stdin.read().strip()
+if not new_key and not dry_run:
+    print(
+        "No new key — set $NEW_STREAM_KEY or pipe it on stdin, or pass --dry-run to only read.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
+port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
+password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+
+try:
+    with obs.ReqClient(host=host, port=port, password=password, timeout=10) as client:
+        current = client.get_stream_service_settings()
+        service_type = current.stream_service_type
+        settings = dict(current.stream_service_settings)
+        print(f"Service type: {service_type}")
+        for field, value in settings.items():
+            shown = mask(value) if field == "key" else value
+            print(f"ROLLBACK VALUE — {field}: {shown}")
+
+        if dry_run:
+            print("--dry-run — nothing changed.")
+            sys.exit(0)
+
+        live = client.get_stream_status().output_active
+        # Every other field is carried over unchanged: SetStreamServiceSettings
+        # replaces the whole settings object rather than merging into it.
+        client.set_stream_service_settings(service_type, {**settings, "key": new_key})
+
+        confirmed = client.get_stream_service_settings().stream_service_settings.get(
+            "key"
+        )
+        print(f"Stream key is now: {mask(confirmed)}")
+        print(f"Stream output was {'ACTIVE' if live else 'idle'} during the swap.")
+        if confirmed != new_key:
+            print("WARNING: OBS reports a key other than the one set", file=sys.stderr)
+            sys.exit(1)
+except ConnectionRefusedError:
+    print(
+        f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+except Exception as e:  # pylint: disable=broad-except
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
