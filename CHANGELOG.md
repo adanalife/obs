@@ -13,6 +13,16 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.13.0] — 2026-08-20
+
+### Changed
+
+- The per-platform noVNC tailnet Ingresses are served by the shared Tailscale ProxyGroup instead of a dedicated proxy pod each. The `*.ts.net` hostnames are unchanged. ([#123](https://github.com/adanalife/obs/pull/123))
+
+### Fixed
+
+- `obs-screenshot-check` skips audio-only sources instead of failing on them, and `OBS_SCREENSHOT_SKIP` excludes overlays that are legitimately blank ([#121](https://github.com/adanalife/obs/pull/121))
+
 ## [v2.12.0] — 2026-08-19
 
 ### Added
