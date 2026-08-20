@@ -660,6 +660,10 @@ class ObsInstance(Construct):
             kind="Ingress",
             name=f"{name}-ts",
             namespace=ns,
+            # Served by the cluster's shared HA Tailscale proxy fleet rather than
+            # a dedicated proxy pod per Ingress. The *.ts.net hostname is the
+            # same either way.
+            annotations={"tailscale.com/proxy-group": "ingress-proxies"},
             spec={
                 "ingressClassName": "tailscale",
                 "defaultBackend": {

@@ -121,3 +121,29 @@ def test_every_obs_is_born_parked(manifest: Path):
         f"{deploys[0]['metadata']['name']} declares "
         f"{deploys[0]['spec']['replicas']} replicas; every OBS births parked"
     )
+
+
+def test_tailscale_ingresses_use_the_shared_proxy_group():
+    """A tailscale Ingress without the proxy-group annotation gets its own pod.
+
+    The operator's default is one dedicated proxy pod per Ingress; the annotation
+    is what hands the hostname to the shared HA fleet instead. Dropping it is a
+    silent regression — the endpoint still resolves and serves the same
+    `*.ts.net` name, so nothing fails except the proxy pod count, which no other
+    check reads.
+    """
+    found = [
+        (manifest.stem, ing)
+        for manifest in MANIFESTS
+        for ing in _by_kind(_docs(manifest), "Ingress")
+        if ing["spec"].get("ingressClassName") == "tailscale"
+    ]
+    # One per platform per tailnet-publishing env; zero would make the loop
+    # below vacuous.
+    assert len(found) >= 10, [name for name, _ in found]
+    for manifest_name, ing in found:
+        annotations = ing["metadata"].get("annotations", {})
+        assert annotations.get("tailscale.com/proxy-group") == "ingress-proxies", (
+            f"{manifest_name}: {ing['metadata']['name']} has no proxy-group "
+            "annotation, so the operator gives it a dedicated proxy pod"
+        )
