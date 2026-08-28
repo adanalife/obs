@@ -9,6 +9,11 @@
 # llvmpipe (an Xvfb/X11 stack would land on the CPU rasterizer).
 set -euo pipefail
 
+# Root of the baked-in config templates and helper scripts (Dockerfile
+# COPYs config/ and script/ here). Overridable so the boot sequence can be
+# exercised against the repo tree without building the image.
+OBS_ASSETS="${OBS_ASSETS:-/opt/obs}"
+
 echo "OBS container, tripbot version $(cat /etc/tripbot/version 2>/dev/null || echo dev) (sha: $(cat /etc/tripbot/sha 2>/dev/null || echo unknown))"
 
 OBS_HOME="${HOME:-/root}/.config/obs-studio"
@@ -122,10 +127,10 @@ esac
 # global.ini (BrowserHWAccel etc.) and user-preference settings moved to
 # user.ini. Seed both so OBS sees a complete config and never prompts about
 # migration.
-cp /opt/obs/config/global.ini "$OBS_HOME/global.ini"
-cp /opt/obs/config/user.ini   "$OBS_HOME/user.ini"
-envsubst < /opt/obs/config/basic.ini.tmpl > "$OBS_HOME/basic/profiles/ADanaLife/basic.ini"
-envsubst < /opt/obs/config/Tripbot.json.tmpl > "$OBS_HOME/basic/scenes/Tripbot.json"
+cp "${OBS_ASSETS}"/config/global.ini "$OBS_HOME/global.ini"
+cp "${OBS_ASSETS}"/config/user.ini   "$OBS_HOME/user.ini"
+envsubst < "${OBS_ASSETS}"/config/basic.ini.tmpl > "$OBS_HOME/basic/profiles/ADanaLife/basic.ini"
+envsubst < "${OBS_ASSETS}"/config/Tripbot.json.tmpl > "$OBS_HOME/basic/scenes/Tripbot.json"
 
 scene_file="$OBS_HOME/basic/scenes/Tripbot.json"
 
@@ -160,7 +165,7 @@ fi
 # on any platform, and the console switches it live over the WebSocket, so this
 # only picks where the stream starts.
 # shellcheck source=script/background-audio.sh
-source /opt/obs/script/background-audio.sh
+source "${OBS_ASSETS}/script/background-audio.sh"
 set_background_audio \
   "${OBS_BACKGROUND_AUDIO:-$(default_background_audio "${STREAM_PLATFORM:-twitch}")}" \
   "$scene_file"
@@ -207,13 +212,13 @@ EOF
 esac
 
 mkdir -p "$OBS_HOME/plugin_config/obs-websocket"
-envsubst < /opt/obs/config/obs-websocket.json.tmpl > "$OBS_HOME/plugin_config/obs-websocket/config.json"
+envsubst < "${OBS_ASSETS}"/config/obs-websocket.json.tmpl > "$OBS_HOME/plugin_config/obs-websocket/config.json"
 
 # Render service.json only when STREAM_KEY is set. start-obs.sh keys off
 # this file's existence to decide whether to pass --startstreaming.
 if [[ -n "${STREAM_KEY:-}" && ( "$OBS_STREAM_TYPE" != "rtmp_custom" || -n "${OBS_STREAM_SERVER:-}" ) ]]; then
   echo "STREAM_KEY set; configuring ${OBS_STREAM_SERVICE:-$OBS_STREAM_SERVER} and starting stream."
-  envsubst < /opt/obs/config/service.json.tmpl \
+  envsubst < "${OBS_ASSETS}"/config/service.json.tmpl \
     > "$OBS_HOME/basic/profiles/ADanaLife/service.json"
 elif [[ -n "${STREAM_KEY:-}" ]]; then
   # Custom-RTMP platform (tiktok) with a key but no ingest URL yet — the
@@ -237,7 +242,7 @@ chmod 0700 "$XDG_RUNTIME_DIR"
 # the pod; access control lives at the traefik Ingress in front of noVNC) —
 # so envsubst is a passthrough copy, kept so the cfg lands at the same spot
 # as the rest of the per-pod runtime config.
-envsubst < /opt/obs/config/wayvnc.cfg.tmpl > "$XDG_RUNTIME_DIR/wayvnc.cfg"
+envsubst < "${OBS_ASSETS}"/config/wayvnc.cfg.tmpl > "$XDG_RUNTIME_DIR/wayvnc.cfg"
 
 # Hand off to supervisord. It manages sway, wayvnc, obs, noVNC/websockify,
 # obs-server, and the hourly browser-source refresh (with each program's

@@ -1,0 +1,1 @@
+Cover the container boot sequence: `scripts/check-entrypoint.sh` renders the real config templates for each preset, platform and encoder and asserts the canvas, stream target, generated portrait scene and encoder profile.
