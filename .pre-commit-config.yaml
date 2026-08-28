@@ -44,6 +44,21 @@ repos:
     hooks:
       - id: actionlint
 
+  # Shell linting. The container's boot path is bash — entrypoint.sh, the
+  # supervisor start-*.sh programs and healthcheck.sh — and none of it is
+  # covered by a type checker, so shellcheck is the only thing that reads it
+  # before a pod does.
+  #
+  # shellcheck-py rather than koalaman/shellcheck-precommit: the upstream hook
+  # is `language: docker_image`, and pulling an image mid-hook is what wedged
+  # the self-hosted runner's node on 2026-08-24. This one ships the same
+  # binary in a wheel.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [-x] # follow `source`d files (entrypoint.sh sources background-audio.sh)
+
   # Markdown linting — reads .github/linters/.markdown-lint.yml. The towncrier
   # Jinja template is named .md but isn't valid markdown, so it's excluded.
   - repo: https://github.com/igorshubovych/markdownlint-cli
