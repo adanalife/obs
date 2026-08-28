@@ -1,0 +1,1 @@
+obs-server now has tests. `/version`'s four keys — `tag`, `sha`, `built_at`, `started_at` — are a contract with the console's status table and are asserted as a whole set, so renaming or adding one is a deliberate edit rather than a silent degradation. Also covered: the bake-step-missing and blank-file fallbacks, and `/admin/shutdown` answering 202 before it signals supervisord.
