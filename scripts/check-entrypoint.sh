@@ -19,9 +19,17 @@ trap 'rm -rf "$work"' EXIT
 
 # entrypoint.sh ends in `exec supervisord`. Stub it so the boot sequence runs
 # to completion and returns, leaving the rendered config behind to inspect.
+# The stub also dumps its environment: that is exactly what supervisord hands
+# down to script/start-obs.sh, so the launch checks below can replay it.
 mkdir -p "$work/bin"
-printf '#!/bin/sh\nexit 0\n' > "$work/bin/supervisord"
+# shellcheck disable=SC2016 # the stub's own $HOME, expanded when it runs
+printf '#!/bin/sh\nenv > "$HOME/boot.env"\nexit 0\n' > "$work/bin/supervisord"
 chmod +x "$work/bin/supervisord"
+
+# start-obs.sh ends in `exec obs`. Stub that too and record the argv it built.
+# shellcheck disable=SC2016 # likewise: expanded inside the stub, not here
+printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "$OBS_ARGV_OUT"\nexit 0\n' > "$work/bin/obs"
+chmod +x "$work/bin/obs"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
@@ -47,6 +55,39 @@ boot() {
 }
 
 profile() { echo "$1/basic/profiles/ADanaLife"; }
+
+# Runs script/start-obs.sh for an already-booted case and echoes the argv it
+# would have exec'd OBS with, one word per line. The environment is replayed
+# from the supervisord stub's dump, so this exercises the real handoff rather
+# than a guess at what entrypoint exported.
+#
+#   launch <case-name>
+launch() {
+  local name=$1
+  local home="$work/$name"
+  [[ -f "$home/boot.env" ]] || fail "$name: no boot happened, nothing to launch"
+  (
+    while IFS= read -r line; do
+      [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || continue
+      export "${line%%=*}=${line#*=}"
+    done < "$home/boot.env"
+    export PATH="$work/bin:$PATH"
+    export OBS_ARGV_OUT="$home/obs.argv"
+    mkdir -p "$XDG_RUNTIME_DIR"
+    # start-obs.sh blocks on sway's Wayland socket; bind a real one so it
+    # proceeds instead of timing out after 30s.
+    # Bound from inside the directory: AF_UNIX paths are capped near 100 bytes
+    # and a mktemp -d prefix eats most of that.
+    python3 -c 'import os, socket, sys
+os.chdir(sys.argv[1]); socket.socket(socket.AF_UNIX).bind(sys.argv[2])' \
+      "$XDG_RUNTIME_DIR" "${WAYLAND_DISPLAY:-wayland-1}"
+    bash "$repo/script/start-obs.sh"
+  ) > "$home/start-obs.log" 2>&1 || {
+    cat "$home/start-obs.log" >&2
+    fail "$name: start-obs.sh exited non-zero"
+  }
+  cat "$home/obs.argv"
+}
 
 # Reads a key out of the rendered basic.ini. The file is INI with [sections],
 # and the video keys are unique across sections, so a plain match is enough.
@@ -200,5 +241,35 @@ done
 scene_root=$(boot websocket STREAM_PLATFORM=twitch)
 jq -e . "$scene_root/plugin_config/obs-websocket/config.json" >/dev/null ||
   fail "obs-websocket config is not valid JSON"
+
+# --- The supervisord handoff ------------------------------------------------
+# Everything above pins what entrypoint.sh *writes*. These pin the consumer:
+# start-obs.sh decides whether to go live, and which scene to go live on, from
+# what entrypoint left behind. Drift either way is invisible until someone
+# looks at the stream — a parked pod that starts pushing, a live pod that
+# never does, or a portrait canvas going out pillarboxed.
+argv=$(launch twitch-keyed)
+grep -qx -- --startstreaming <<< "$argv" ||
+  fail "twitch keyed: a rendered service.json should make OBS start streaming"
+grep -qx Main <<< "$argv" || fail "twitch keyed: should go live on Main"
+
+argv=$(launch twitch-keyless)
+! grep -qx -- --startstreaming <<< "$argv" ||
+  fail "keyless: OBS must stay parked when entrypoint rendered no service.json"
+
+# The one that is a key *without* an ingest: the tiktok session isn't minted
+# yet, so entrypoint skips service.json and the pod must not push anywhere.
+argv=$(launch tiktok-parked)
+! grep -qx -- --startstreaming <<< "$argv" ||
+  fail "tiktok with no ingest URL: OBS must stay parked"
+
+# Portrait pods go live on the generated Vertical scene, which entrypoint
+# signals with OBS_VERTICAL through the same environment.
+argv=$(launch tiktok-keyed)
+grep -qx -- --startstreaming <<< "$argv" || fail "tiktok keyed: should start streaming"
+grep -qx Vertical <<< "$argv" || fail "tiktok: should go live on the Vertical scene"
+
+argv=$(launch twitch-forced-vertical)
+grep -qx Vertical <<< "$argv" || fail "OBS_VERTICAL=true should launch onto Vertical"
 
 echo "entrypoint: all boot paths OK"
