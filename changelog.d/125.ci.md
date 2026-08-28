@@ -1,0 +1,1 @@
+`carhum.py` gets a synthesis smoke test — the fallback bed's renders are now checked for length, sample rate, level and that they are not silence, plus seed reproducibility and the seamless-loop trim. Previously no CI job ran the script at all.

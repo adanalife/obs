@@ -16,9 +16,11 @@ cdk8s = [
     "constructs>=10.7.1",
     "pyyaml>=6.0.3",
 ]
-# Tests over the synthed manifests. pytest to match infra's cdk8s suite, which
-# is the fleet's existing shape for exactly this kind of assertion; the YAML
-# reader comes from the cdk8s group above, so `task test` runs with both.
+# Tests over the synthed manifests and over carhum.py's synthesis. pytest to
+# match infra's cdk8s suite, which is the fleet's existing shape for exactly
+# this kind of assertion; the YAML reader comes from the cdk8s group above, so
+# `task test` runs with both. The carhum test shells out to `uv run`, which
+# resolves that script's own inline numpy/scipy — they stay out of these groups.
 dev = [
     "pytest>=9.1.1",
 ]
@@ -27,5 +29,5 @@ dev = [
 package = false
 
 [tool.pytest.ini_options]
-testpaths = ["cdk8s/tests"]
+testpaths = ["cdk8s/tests", "carhum"]
 pythonpath = ["cdk8s"]
