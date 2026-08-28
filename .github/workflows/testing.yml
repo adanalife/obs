@@ -48,6 +48,19 @@ jobs:
       - name: Check background-audio bed selection
         run: scripts/check-background-audio.sh
 
+  # The container's boot sequence is pure env -> config rendering right up to
+  # the supervisord handoff, so it runs against the repo's own templates with
+  # supervisord stubbed. Catches the class of fault a pod restart would
+  # otherwise discover on air: a canvas the wrong way round, a stream pointed
+  # at the wrong ingest, an encoder profile OBS drops back to software.
+  entrypoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check entrypoint config rendering
+        run: scripts/check-entrypoint.sh
+
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30
