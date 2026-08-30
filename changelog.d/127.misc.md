@@ -1,0 +1,1 @@
+Re-synced `contract.json` from tripbot, which now owns the per-platform `gateway-<platform>` Service names and the gateway HTTP port. Additive vocabulary only — obs reads neither key, so this keeps the daily drift gate green.
