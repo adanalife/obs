@@ -9,8 +9,8 @@
 # llvmpipe (an Xvfb/X11 stack would land on the CPU rasterizer).
 set -euo pipefail
 
-# Root of the baked-in config templates and helper scripts (Dockerfile
-# COPYs config/ and script/ here). Overridable so the boot sequence can be
+# Root of the baked-in config templates and helper scripts (the Dockerfile
+# copies config/ and script/ here). Overridable so the boot sequence can be
 # exercised against the repo tree without building the image.
 OBS_ASSETS="${OBS_ASSETS:-/opt/obs}"
 
