@@ -1,0 +1,16 @@
+# codespell config, read by BOTH gates so they can't drift apart:
+#   - the weekly super-linter sweep (SPELL_CODESPELL resolves
+#     .github/linters/.codespellrc and passes it as --config)
+#   - the pre-commit hook (points at this same path explicitly)
+#
+# Keep the skip list in sync with the codespell-relevant parts of
+# super-linter.yml's FILTER_REGEX_EXCLUDE: super-linter never hands these
+# files to any linter, so pre-commit must not either, or a false positive in
+# generated content turns pre-commit red while the sweep stays green.
+#
+# Patterns are fnmatch'd against the path as passed, and the two gates pass
+# different shapes (pre-commit: cdk8s/dist/foo.yaml, super-linter:
+# /github/workspace/cdk8s/dist/foo.yaml) — hence the leading `*`.
+[codespell]
+check-hidden =
+skip = .git,*.log,*uv.lock,*cdk8s/dist/*,*towncrier-template.md

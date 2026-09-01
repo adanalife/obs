@@ -69,6 +69,17 @@ repos:
         args: [--config, .github/linters/.markdown-lint.yml]
         exclude: '^\.github/towncrier-template\.md$'
 
+  # Spell-checking prose, comments and identifiers. The weekly super-linter
+  # sweep runs codespell too, but weekly is a long time to sit red — obs#131
+  # was a false positive (the plural of Dockerfile's COPY directive) that cost
+  # a whole cron cycle. This catches it at commit time instead, off the same
+  # config file as the sweep so the two gates can't disagree.
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+        args: [--config, .github/linters/.codespellrc]
+
   # Python: ruff handles both lint and format, over the cdk8s/ deploy-authoring
   # layer, script/obs_server.py, and the bin/ helpers.
   #
