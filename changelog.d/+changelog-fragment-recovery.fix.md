@@ -1,0 +1,1 @@
+The release-please changelog build step recovers the PR number for any `changelog.d/+*.md` fragment left unrenamed by a merge that raced `changelog-number.yml`, reading it off the squash commit subject before towncrier collates fragments.
