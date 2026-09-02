@@ -1,44 +1,125 @@
 #!/usr/bin/env python3
 # pylint: disable=invalid-name,duplicate-code
-"""Refresh all OBS browser sources via obs-websocket.
+"""Hard-reload OBS browser sources whose page has died.
+
+A browser source that renders nothing — a crashed CEF renderer, a page that
+never loaded because onscreens-server wasn't up yet — shows as a blank frame,
+and `refreshnocache` can't revive it: the render process is gone. Pointing the
+source at about:blank and back respawns it. Each run screenshots every
+browser source and does that swap for the blank ones only; a source with
+content on it is left alone.
+
+Blankness is judged from a small BMP screenshot because BMP is raw pixels the
+stdlib can read — no image library in the venv. A source that is blank by
+design (an overlay between shows) reads as dead too and gets reloaded; that is
+a fresh renderer for a page that was showing nothing, so nothing visible
+changes.
 
 Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-browser-refresh
 """
 
+from __future__ import annotations
+
+import base64
 import os
 import sys
+import time
 
-try:
-    import obsws_python as obs
-except ImportError:
-    print(
-        "obsws-python not found — run via: uv run --with obsws-python bin/obs-browser-refresh",
-        file=sys.stderr,
+# Screenshot size. Small keeps the round-trip cheap; any real content survives
+# the downscale as at least one differing pixel.
+SHOT_W, SHOT_H = 64, 36
+
+# How long a source sits on about:blank before its url is restored — long
+# enough for CEF to tear the old renderer down, short enough to read as a
+# flicker on a source that had content (which this script never reloads).
+RELOAD_GAP_S = 0.6
+
+BLANK_URL = "about:blank"
+
+
+def is_blank(bmp: bytes) -> bool:
+    """True when every pixel in a BMP is the same colour.
+
+    Reads the pixel-array offset and bits-per-pixel from the header and
+    compares pixels as fixed-width byte groups, so it holds for the 24- and
+    32-bit images Qt writes and is oblivious to row order and padding for
+    the widths in use here.
+    """
+    if len(bmp) < 30 or bmp[:2] != b"BM":
+        raise ValueError("not a BMP")
+    offset = int.from_bytes(bmp[10:14], "little")
+    bpp = int.from_bytes(bmp[28:30], "little")
+    if bpp not in (24, 32):
+        raise ValueError(f"unsupported bpp {bpp}")
+    stride = bpp // 8
+    pixels = bmp[offset:]
+    first = pixels[:stride]
+    return all(
+        pixels[i : i + stride] == first
+        for i in range(0, len(pixels) - stride + 1, stride)
     )
-    sys.exit(1)
 
-host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
-port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
-password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
 
-try:
-    with obs.ReqClient(host=host, port=port, password=password, timeout=10) as client:
-        result = client.get_input_list()
-        sources = [i for i in result.inputs if i["inputKind"] == "browser_source"]
-        if not sources:
-            print("No browser sources found in OBS.")
-            sys.exit(0)
-        for source in sources:
-            name = source["inputName"]
-            client.press_input_properties_button(name, "refreshnocache")
-            print(f"Refreshed: {name}")
-        print(f"Done — refreshed {len(sources)} browser source(s).")
-except ConnectionRefusedError:
-    print(
-        f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-except Exception as e:  # pylint: disable=broad-except
-    print(f"Error: {e}", file=sys.stderr)
-    sys.exit(1)
+def decode_screenshot(data_uri: str) -> bytes:
+    """Strip the data-URI prefix obs-websocket wraps the image in."""
+    return base64.b64decode(data_uri.split(",", 1)[1])
+
+
+def main() -> int:
+    try:
+        import obsws_python as obs  # pylint: disable=import-outside-toplevel
+    except ImportError:
+        print(
+            "obsws-python not found — run via: uv run --with obsws-python bin/obs-browser-refresh",
+            file=sys.stderr,
+        )
+        return 1
+
+    host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
+    port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
+    password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+
+    try:
+        with obs.ReqClient(
+            host=host, port=port, password=password, timeout=10
+        ) as client:
+            result = client.get_input_list()
+            sources = [
+                i["inputName"]
+                for i in result.inputs
+                if i["inputKind"] == "browser_source"
+            ]
+            if not sources:
+                print("No browser sources found in OBS.")
+                return 0
+            reloaded = 0
+            for name in sources:
+                url = client.get_input_settings(name).input_settings.get("url")
+                if not url:
+                    # A file-backed source has nothing to reload this way.
+                    continue
+                shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
+                if not is_blank(decode_screenshot(shot.image_data)):
+                    continue
+                client.set_input_settings(name, {"url": BLANK_URL}, True)
+                time.sleep(RELOAD_GAP_S)
+                client.set_input_settings(name, {"url": url}, True)
+                reloaded += 1
+                print(f"Reloaded blank source: {name}")
+            print(
+                f"Done — {len(sources)} browser source(s) checked, {reloaded} reloaded."
+            )
+    except ConnectionRefusedError:
+        print(
+            f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:  # pylint: disable=broad-except
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
