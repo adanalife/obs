@@ -5,6 +5,15 @@ vars:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
   SHA:
     sh: git rev-parse HEAD 2>/dev/null || echo unknown
+  # The sibling checkouts (tripbot, platform-gateway) sit next to this repo's
+  # *main* worktree, which is not the working directory when a task runs from
+  # ~/adanalife/worktrees/ — there, `..` is the worktrees dir. `--git-common-dir`
+  # always names the shared .git regardless of which worktree asks, so its
+  # grandparent is the siblings' parent either way. `--path-format=absolute`
+  # matters: from the main checkout the common dir is the relative `.git`, whose
+  # grandparent would otherwise be `.`.
+  SIBLINGS:
+    sh: dirname "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
 
 tasks:
   image:build:
@@ -51,7 +60,7 @@ tasks:
   contract:sync:
     desc: Re-sync contract.json from the sibling tripbot checkout (the source of truth)
     cmds:
-      - cp ../tripbot/pkg/contract/contract.json contract.json
+      - cp {{.SIBLINGS}}/tripbot/pkg/contract/contract.json contract.json
 
   # platforms.json is the fleet-wide supported-platform set, owned by
   # platform-gateway (its Go adapter registry is the source of truth) and synced
@@ -59,7 +68,7 @@ tasks:
   platforms:sync:
     desc: Re-sync platforms.json from the sibling platform-gateway checkout (the source of truth)
     cmds:
-      - cp ../platform-gateway/platforms.json platforms.json
+      - cp {{.SIBLINGS}}/platform-gateway/platforms.json platforms.json
 
   cdk8s:synth:
     desc: Synthesize the k8s deploy manifests into cdk8s/dist/
