@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # pylint: disable=invalid-name,duplicate-code
-"""Restart all OBS media sources (ffmpeg_source / vlc_source) via obs-websocket.
+"""Restart all OBS media sources (ffmpeg_source) via obs-websocket.
 
 Useful after the RTSP source restarts (a playout or MediaMTX bounce) to force
 OBS to reconnect rather than waiting for its own retry timer.
@@ -20,7 +20,7 @@ except ImportError:
     )
     sys.exit(1)
 
-MEDIA_KINDS = {"ffmpeg_source", "vlc_source"}
+MEDIA_KINDS = {"ffmpeg_source"}
 
 host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
 port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
