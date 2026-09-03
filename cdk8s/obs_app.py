@@ -146,6 +146,10 @@ def emit_image_gate(
             # Cap the wait so a wedged/unschedulable probe fails the sync (pod
             # safe) instead of stalling PreSync forever.
             "activeDeadlineSeconds": 120,
+            # Kubernetes never reaps finished Job pods, so gates accumulate as
+            # Completed/Failed clutter in every pod-health read. A day is long
+            # enough to read a failed gate's log the morning after.
+            "ttlSecondsAfterFinished": 86400,
             "template": {
                 "metadata": {"labels": labels},
                 "spec": {
@@ -229,6 +233,10 @@ def emit_volume_gate(
             # An unbound claim never schedules, so the deadline IS the failure
             # signal — keep it short enough that a genuine miss fails fast.
             "activeDeadlineSeconds": 120,
+            # Kubernetes never reaps finished Job pods, so gates accumulate as
+            # Completed/Failed clutter in every pod-health read. A day is long
+            # enough to read a failed gate's log the morning after.
+            "ttlSecondsAfterFinished": 86400,
             "template": {
                 "metadata": {"labels": labels},
                 "spec": {
