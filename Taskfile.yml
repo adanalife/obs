@@ -59,6 +59,12 @@ tasks:
   # OBS's own container ports; never hand-edit it here.
   contract:sync:
     desc: Re-sync contract.json from the sibling tripbot checkout (the source of truth)
+    preconditions:
+      # The copy reads the sibling's working tree, and a checkout behind
+      # origin/main syncs stale content and succeeds silently. Refuse unless the
+      # synced files match origin/main.
+      - sh: git -C {{.SIBLINGS}}/tripbot fetch -q origin && git -C {{.SIBLINGS}}/tripbot diff --quiet origin/main -- pkg/contract/
+        msg: "{{.SIBLINGS}}/tripbot pkg/contract/ differs from origin/main — pull that checkout (or push its change) first; syncing from it copies stale content"
     cmds:
       - cp {{.SIBLINGS}}/tripbot/pkg/contract/contract.json contract.json
 
@@ -67,6 +73,12 @@ tasks:
   # into this repo. cdk8s reads it into SUPPORTED_PLATFORMS; never hand-edit it here.
   platforms:sync:
     desc: Re-sync platforms.json from the sibling platform-gateway checkout (the source of truth)
+    preconditions:
+      # The copy reads the sibling's working tree, and a checkout behind
+      # origin/main syncs stale content and succeeds silently. Refuse unless the
+      # synced files match origin/main.
+      - sh: git -C {{.SIBLINGS}}/platform-gateway fetch -q origin && git -C {{.SIBLINGS}}/platform-gateway diff --quiet origin/main -- platforms.json
+        msg: "{{.SIBLINGS}}/platform-gateway platforms.json differs from origin/main — pull that checkout (or push its change) first; syncing from it copies stale content"
     cmds:
       - cp {{.SIBLINGS}}/platform-gateway/platforms.json platforms.json
 
