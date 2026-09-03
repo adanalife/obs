@@ -110,8 +110,8 @@ Trunk-based `main` + [release-please](https://github.com/googleapis/release-plea
    the `changelog.d/` fragments into `CHANGELOG.md`, and re-synths `cdk8s/dist/`
    on the PR branch.
 4. **To ship: squash-merge the release PR.** That tags `vX.Y.Z`, creates the
-   GitHub Release, and dispatches `release.yml` to build the multi-arch image to
-   GHCR. No manual version/changelog steps — the version follows from the commit
+   GitHub Release, and the tag fires `release.yml` to build the multi-arch image
+   to GHCR. No manual version/changelog steps — the version follows from the commit
    types (`feat:` → minor, `fix:` → patch, `feat!:`/`BREAKING CHANGE` → major).
 
 The arm64 CEF base (`Dockerfile.arm64-base`) is rebuilt only when it changes, by
