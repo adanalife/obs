@@ -69,7 +69,7 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
       qt6-image-formats-plugins qt6-wayland \
       libasound2t64 libfdk-aac2 libfontconfig1 libfreetype6 \
       libjack-jackd2-0 libpulse0 libsndio7.0 libspeexdsp1 libudev1 \
-      libv4l-0t64 libva2 libvlc5 libdrm2 \
+      libv4l-0t64 libva2 libdrm2 \
       # CEF runtime deps (chromium needs these even headless) \
       libnss3 libgbm1 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 \
       libcups2t64 libxdamage1 libxkbcommon0 libxkbfile1 libexpat1 libpango-1.0-0 \

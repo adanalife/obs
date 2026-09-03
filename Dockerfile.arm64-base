@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       qt6-base-dev qt6-base-private-dev qt6-svg-dev qt6-wayland qt6-image-formats-plugins \
       libasound2-dev libfdk-aac-dev libfontconfig-dev libfreetype-dev \
       libjack-jackd2-dev libpulse-dev libsndio-dev libspeexdsp-dev \
-      libudev-dev libv4l-dev libva-dev libvlc-dev libdrm-dev \
+      libudev-dev libv4l-dev libva-dev libdrm-dev \
       nlohmann-json3-dev libwebsocketpp-dev libasio-dev \
       # CEF link-time deps (chromium pulls in NSS, ATK, AT-SPI2, XDamage, etc.) \
       libnss3-dev libatk1.0-dev libatk-bridge2.0-dev libatspi2.0-dev \
