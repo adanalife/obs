@@ -13,6 +13,46 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.14.0] — 2026-09-03
+
+### Added
+
+- Added an explicit all-rights-reserved `LICENSE`. The repo previously carried no licence file, which already meant the same thing by default; the file removes the ambiguity. ([#135](https://github.com/adanalife/obs/pull/135))
+
+### Changed
+
+- Sync `contract.json` for the `vlc` → `playout` key rename (`playout_http`, `playout_host`; `vlc_*` aliases dropped). ([#136](https://github.com/adanalife/obs/pull/136))
+- The browser-source refresher now reloads only sources that are actually dead. Every five minutes it screenshots each browser source and, for any showing a blank frame, swaps its url through `about:blank` and back to respawn the CEF renderer — the move that recovered the crashed overlays by hand. Sources with content on them are left alone, so the hourly unconditional `refreshnocache` (which could not revive a crashed page and once appeared to trigger a crash) is gone. ([#140](https://github.com/adanalife/obs/pull/140))
+
+### Removed
+
+- Drop the libvlc packages from the arm64 images and `vlc_source` from `bin/obs-media-restart`; the container scene collections only use `ffmpeg_source`. ([#144](https://github.com/adanalife/obs/pull/144))
+
+### Fixed
+
+- The release-please changelog build step recovers the PR number for any `changelog.d/+*.md` fragment left unrenamed by a merge that raced `changelog-number.yml`, reading it off the squash commit subject before towncrier collates fragments. ([#134](https://github.com/adanalife/obs/pull/134))
+- The contract:sync and platforms:sync tasks now find the sibling tripbot and platform-gateway checkouts when run from a git worktree. ([#137](https://github.com/adanalife/obs/pull/137))
+- The PreSync image and volume gate Jobs now set `ttlSecondsAfterFinished: 86400`, so their finished pods are reaped after a day instead of accumulating. ([#145](https://github.com/adanalife/obs/pull/145))
+- The release PR is staged (changelog built, `cdk8s/dist` re-synthed, CI fired) on every main push while its branch exists, not only on the runs where release-please itself changed it — the gap that let a release merge with a stale dist and no checks. ([#146](https://github.com/adanalife/obs/pull/146))
+
+### CI / Tooling
+
+- `carhum.py` gets a synthesis smoke test — the fallback bed's renders are now checked for length, sample rate, level and that they are not silence, plus seed reproducibility and the seamless-loop trim. Previously no CI job ran the script at all. ([#125](https://github.com/adanalife/obs/pull/125))
+- The release-please fragment-recovery step no longer mistakes towncrier's duplicate-name counter for the fragment type when renaming a placeholder. ([#138](https://github.com/adanalife/obs/pull/138))
+- The pull-request gates now name which gate failed, in the checks tab and in the run summary. ([#139](https://github.com/adanalife/obs/pull/139))
+
+### Misc
+
+- Lint the boot-path shell scripts with shellcheck in pre-commit. ([#126](https://github.com/adanalife/obs/pull/126))
+- Cover the container boot sequence: `scripts/check-entrypoint.sh` renders the real config templates for each preset, platform and encoder and asserts the canvas, stream target, generated portrait scene and encoder profile. ([#126](https://github.com/adanalife/obs/pull/126))
+- Re-synced `contract.json` from tripbot, which now owns the per-platform `gateway-<platform>` Service names and the gateway HTTP port. Additive vocabulary only — obs reads neither key, so this keeps the daily drift gate green. ([#127](https://github.com/adanalife/obs/pull/127))
+- `scripts/check-entrypoint.sh` now also runs `script/start-obs.sh`, pinning the supervisord handoff: whether OBS goes live at all, and which scene it goes live on. ([#128](https://github.com/adanalife/obs/pull/128))
+- obs-server now has tests. `/version`'s four keys — `tag`, `sha`, `built_at`, `started_at` — are a contract with the console's status table and are asserted as a whole set, so renaming or adding one is a deliberate edit rather than a silent degradation. Also covered: the bake-step-missing and blank-file fallbacks, and `/admin/shutdown` answering 202 before it signals supervisord. ([#129](https://github.com/adanalife/obs/pull/129))
+- Reword the entrypoint asset-root comment so codespell stops flagging it. ([#131](https://github.com/adanalife/obs/pull/131))
+- Run codespell at commit time via pre-commit, sharing `.github/linters/.codespellrc` with the weekly super-linter sweep. ([#133](https://github.com/adanalife/obs/pull/133))
+- Add a pre-commit hook (run in CI too) that fails on any private-notes `vault/<dir>/` path in the tree. ([#141](https://github.com/adanalife/obs/pull/141))
+- The contract/platforms sync tasks refuse to copy from a sibling checkout that is behind `origin/main`. ([#142](https://github.com/adanalife/obs/pull/142))
+
 ## [v2.13.0] — 2026-08-20
 
 ### Changed
