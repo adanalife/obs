@@ -20,6 +20,7 @@ updates:
   #                   a branch to be up to date before merging.
   #   schedule        is weekly on Monday 13:00 UTC, so a week's bumps arrive as
   #                   one batch to review rather than trickling in daily.
+  #                   The uv entry runs quarterly -- see its own note below.
   #
   # Bumps carry no user-facing change, so they never need a towncrier
   # changelog fragment. Self-apply skip-changelog so the changelog
@@ -71,10 +72,16 @@ updates:
     cooldown:
       default-days: 7
     rebase-strategy: disabled
+  # This repo's uv project is the cdk8s authoring layer, so it runs quarterly
+  # rather than weekly: jsii auto-releases cdk8s on nearly every upstream
+  # change -- dozens of patches a quarter, all inside one minor -- so a weekly
+  # run always finds a newly-eligible patch and turns that stream into a weekly
+  # PR whatever the cooldown is. Quarterly collapses it to one PR carrying the
+  # same end state; security updates run on their own cadence regardless.
   - package-ecosystem: uv
     directory: /
     schedule:
-      interval: weekly
+      interval: quarterly
       day: monday
       time: "13:00"
     groups:
