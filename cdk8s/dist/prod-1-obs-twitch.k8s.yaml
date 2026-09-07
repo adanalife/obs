@@ -65,7 +65,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: wait-onscreens
-          image: ghcr.io/adanalife/obs:2.13.0
+          image: ghcr.io/adanalife/obs:2.14.0
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -87,7 +87,7 @@ spec:
               memory: 64Mi
       containers:
         - name: obs
-          image: ghcr.io/adanalife/obs:2.13.0
+          image: ghcr.io/adanalife/obs:2.14.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -174,7 +174,7 @@ spec:
           image: gcr.io/go-containerregistry/crane:v0.21.7
           args:
             - manifest
-            - ghcr.io/adanalife/obs:2.13.0
+            - ghcr.io/adanalife/obs:2.14.0
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
