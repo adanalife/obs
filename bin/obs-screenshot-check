@@ -29,27 +29,20 @@ import logging
 import os
 import sys
 
-try:
-    import obsws_python as obs
-except ImportError:
-    print(
-        "obsws-python not found — run via: uv run --with obsws-python bin/obs-screenshot-check",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
 # A failed request logs its own traceback at ERROR before raising; we report
 # per-source verdicts ourselves and don't want the stack dump in between.
 logging.getLogger("obsws_python").disabled = True
 
-host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
-port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
-password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
-min_bytes = int(os.environ.get("OBS_SCREENSHOT_MIN_BYTES", "1000"))
-dump_dir = os.environ.get("SCREENSHOT_DIR")
-skip_names = {
-    s.strip() for s in os.environ.get("OBS_SCREENSHOT_SKIP", "").split(",") if s.strip()
-}
+DEFAULT_MIN_BYTES = 1000
+
+
+def parse_skip(value):
+    """The OBS_SCREENSHOT_SKIP source names, empty entries dropped.
+
+    An unset or blank variable has to mean "skip nothing" rather than "skip
+    the source named empty string", which a bare split would produce.
+    """
+    return {s.strip() for s in (value or "").split(",") if s.strip()}
 
 
 def scene_sources(client, scene):
@@ -83,55 +76,91 @@ def capture(client, name):
     return base64.b64decode(reply.image_data.split(",", 1)[1])
 
 
-try:
-    with obs.ReqClient(host=host, port=port, password=password, timeout=10) as client:
-        scene = client.get_current_program_scene().current_program_scene_name
-        print(f"Scene: {scene}")
+def check_scene(client, *, min_bytes, skip_names, dump_dir=None):
+    """Screenshot every source in the live scene, returning the blank ones."""
+    scene = client.get_current_program_scene().current_program_scene_name
+    print(f"Scene: {scene}")
+
+    if dump_dir:
+        os.makedirs(dump_dir, exist_ok=True)
+
+    failed = []
+    for name, item in scene_sources(client, scene):
+        if name in skip_names:
+            print(f"SKIP  {name:<28} (OBS_SCREENSHOT_SKIP)")
+            continue
+        if not renders_video(item):
+            print(f"SKIP  {name:<28} (no video)")
+            continue
+        try:
+            png = capture(client, name)
+        except Exception as e:  # pylint: disable=broad-except
+            print(f"FAIL  {name:<28} screenshot failed: {e}")
+            failed.append(name)
+            continue
 
         if dump_dir:
-            os.makedirs(dump_dir, exist_ok=True)
+            safe = name.replace("/", "_")
+            with open(os.path.join(dump_dir, f"{safe}.png"), "wb") as f:
+                f.write(png)
 
-        failed = []
-        for name, item in scene_sources(client, scene):
-            if name in skip_names:
-                print(f"SKIP  {name:<28} (OBS_SCREENSHOT_SKIP)")
-                continue
-            if not renders_video(item):
-                print(f"SKIP  {name:<28} (no video)")
-                continue
-            try:
-                png = capture(client, name)
-            except Exception as e:  # pylint: disable=broad-except
-                print(f"FAIL  {name:<28} screenshot failed: {e}")
-                failed.append(name)
-                continue
+        # Byte size is the whole blank detector: a blank source is a uniform
+        # transparent PNG and compresses to ~200 bytes, real content to tens
+        # of KB, so the gap is orders of magnitude. A source that renders
+        # large-but-wrong content passes — catching that needs pixel
+        # inspection, not a size check.
+        if len(png) < min_bytes:
+            print(f"FAIL  {name:<28} {len(png)} bytes (blank — under {min_bytes})")
+            failed.append(name)
+        else:
+            print(f"PASS  {name:<28} {len(png)} bytes")
 
-            if dump_dir:
-                safe = name.replace("/", "_")
-                with open(os.path.join(dump_dir, f"{safe}.png"), "wb") as f:
-                    f.write(png)
-
-            # Byte size is the whole blank detector: a blank source is a uniform
-            # transparent PNG and compresses to ~200 bytes, real content to tens
-            # of KB, so the gap is orders of magnitude. A source that renders
-            # large-but-wrong content passes — catching that needs pixel
-            # inspection, not a size check.
-            if len(png) < min_bytes:
-                print(f"FAIL  {name:<28} {len(png)} bytes (blank — under {min_bytes})")
-                failed.append(name)
-            else:
-                print(f"PASS  {name:<28} {len(png)} bytes")
-
-        if failed:
-            print(f"\n{len(failed)} blank/missing source(s): {', '.join(failed)}")
-            sys.exit(1)
+    if failed:
+        print(f"\n{len(failed)} blank/missing source(s): {', '.join(failed)}")
+    else:
         print("\nAll sources rendered.")
-except ConnectionRefusedError:
-    print(
-        f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-except Exception as e:  # pylint: disable=broad-except
-    print(f"Error: {e}", file=sys.stderr)
-    sys.exit(1)
+    return failed
+
+
+def main() -> int:
+    try:
+        import obsws_python as obs  # pylint: disable=import-outside-toplevel
+    except ImportError:
+        print(
+            "obsws-python not found — run via: "
+            "uv run --with obsws-python bin/obs-screenshot-check",
+            file=sys.stderr,
+        )
+        return 1
+
+    host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
+    port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
+    password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+    min_bytes = int(os.environ.get("OBS_SCREENSHOT_MIN_BYTES", str(DEFAULT_MIN_BYTES)))
+    dump_dir = os.environ.get("SCREENSHOT_DIR")
+    skip_names = parse_skip(os.environ.get("OBS_SCREENSHOT_SKIP"))
+
+    try:
+        with obs.ReqClient(
+            host=host, port=port, password=password, timeout=10
+        ) as client:
+            failed = check_scene(
+                client,
+                min_bytes=min_bytes,
+                skip_names=skip_names,
+                dump_dir=dump_dir,
+            )
+            return 1 if failed else 0
+    except ConnectionRefusedError:
+        print(
+            f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:  # pylint: disable=broad-except
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

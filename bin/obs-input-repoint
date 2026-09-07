@@ -25,46 +25,77 @@ Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 \\
 import os
 import sys
 
-try:
-    import obsws_python as obs
-except ImportError:
-    print(
-        "obsws-python not found — run via: uv run --with obsws-python bin/obs-input-repoint",
-        file=sys.stderr,
+DEFAULT_SOURCE = "Dashcam"
+
+
+def parse_args(argv):
+    """(new_url, source) from the positional arguments.
+
+    A missing NEW_URL is the read-only mode, so None is a meaningful value
+    here rather than a usage error.
+    """
+    return (
+        argv[0] if len(argv) > 0 else None,
+        argv[1] if len(argv) > 1 else DEFAULT_SOURCE,
     )
-    sys.exit(1)
 
-new_url = sys.argv[1] if len(sys.argv) > 1 else None
-source = sys.argv[2] if len(sys.argv) > 2 else "Dashcam"
 
-host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
-port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
-password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+def repoint(client, source, new_url):
+    """Print the rollback value, then repoint unless new_url is None.
 
-try:
-    with obs.ReqClient(host=host, port=port, password=password, timeout=10) as client:
-        current = client.get_input_settings(source).input_settings.get("input")
-        print(f"ROLLBACK VALUE — {source}.input is currently: {current}")
-        if new_url is None:
-            print("No NEW_URL given — read-only, nothing changed.")
-            sys.exit(0)
-        # overlay=True merges into the existing settings rather than replacing
-        # them, so reconnect_delay_sec/buffering_mb/etc. survive the repoint.
-        client.set_input_settings(source, {"input": new_url}, overlay=True)
-        confirmed = client.get_input_settings(source).input_settings.get("input")
-        print(f"Repointed {source} to: {confirmed}")
-        if confirmed != new_url:
-            print(
-                f"WARNING: OBS reports {confirmed!r}, expected {new_url!r}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-except ConnectionRefusedError:
-    print(
-        f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-except Exception as e:  # pylint: disable=broad-except
-    print(f"Error: {e}", file=sys.stderr)
-    sys.exit(1)
+    Returns an exit code: non-zero when OBS reports back a value other than
+    the one set, which is the only way a silently-ignored write shows up.
+    """
+    current = client.get_input_settings(source).input_settings.get("input")
+    print(f"ROLLBACK VALUE — {source}.input is currently: {current}")
+    if new_url is None:
+        print("No NEW_URL given — read-only, nothing changed.")
+        return 0
+    # overlay=True merges into the existing settings rather than replacing
+    # them, so reconnect_delay_sec/buffering_mb/etc. survive the repoint.
+    client.set_input_settings(source, {"input": new_url}, overlay=True)
+    confirmed = client.get_input_settings(source).input_settings.get("input")
+    print(f"Repointed {source} to: {confirmed}")
+    if confirmed != new_url:
+        print(
+            f"WARNING: OBS reports {confirmed!r}, expected {new_url!r}",
+            file=sys.stderr,
+        )
+        return 1
+    return 0
+
+
+def main(argv=None) -> int:
+    try:
+        import obsws_python as obs  # pylint: disable=import-outside-toplevel
+    except ImportError:
+        print(
+            "obsws-python not found — run via: uv run --with obsws-python bin/obs-input-repoint",
+            file=sys.stderr,
+        )
+        return 1
+
+    new_url, source = parse_args(sys.argv[1:] if argv is None else argv)
+
+    host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
+    port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
+    password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+
+    try:
+        with obs.ReqClient(
+            host=host, port=port, password=password, timeout=10
+        ) as client:
+            return repoint(client, source, new_url)
+    except ConnectionRefusedError:
+        print(
+            f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:  # pylint: disable=broad-except
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
