@@ -13,6 +13,16 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.15.0] — 2026-09-09
+
+### Changed
+
+- Twitch now starts on the licensed album bed like every other platform — no platform defaults to SomaFM anymore. SomaFM stays fully selectable from the console, `!somafm` and `OBS_BACKGROUND_AUDIO`; it is just no longer where a stream boots, since its edges have refused our IP and a boot that starts there can start on a bed that never plays. The carhum drone remains the automatic fallback when the music share has no tracks. ([#152](https://github.com/adanalife/obs/pull/152))
+
+### CI / Tooling
+
+- The private-notes pre-commit hook now matches prose references as well as `vault/<dir>/` paths. ([#150](https://github.com/adanalife/obs/pull/150))
+
 ## [v2.14.0] — 2026-09-07
 
 ### Added
