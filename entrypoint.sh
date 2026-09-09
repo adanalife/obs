@@ -159,15 +159,15 @@ if [[ "${OBS_VERTICAL}" == "true" ]]; then
 fi
 
 # Background audio: write the starting bed onto the single "Background Audio"
-# source. The bed defaults per platform (SomaFM on Twitch, the licensed album
-# everywhere else, with the carhum drone as the share-less safety net) and
-# cdk8s overrides it per (env, platform) with OBS_BACKGROUND_AUDIO. Any bed runs
+# source. Every platform starts on the licensed album, with the carhum drone as
+# the share-less safety net, and cdk8s overrides it per (env, platform) with
+# OBS_BACKGROUND_AUDIO. Any bed runs
 # on any platform, and the console switches it live over the WebSocket, so this
 # only picks where the stream starts.
 # shellcheck source=script/background-audio.sh
 source "${OBS_ASSETS}/script/background-audio.sh"
 set_background_audio \
-  "${OBS_BACKGROUND_AUDIO:-$(default_background_audio "${STREAM_PLATFORM:-twitch}")}" \
+  "${OBS_BACKGROUND_AUDIO:-$(default_background_audio)}" \
   "$scene_file"
 
 # Advanced Output mode reads encoder-specific settings from streamEncoder.json

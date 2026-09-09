@@ -96,18 +96,17 @@ set_background_audio() {
   echo "background audio: ${bed}"
 }
 
-# default_background_audio <platform>
+# default_background_audio
 #
-# Where each platform starts when OBS_BACKGROUND_AUDIO is unset. Everywhere
-# SomaFM can't go gets the licensed album: it survives every platform's audio ID
-# the way the drone does, and a slow-tv stream carrying music reads as a channel
-# rather than as something broken. Twitch keeps SomaFM, on the empirical
-# tolerance described above. The drone is still the safety net rather than a
-# default — set_background_audio falls back to it when the share has no tracks,
-# which is how the envs without the music PVC (development, local) boot.
+# Where every platform starts when OBS_BACKGROUND_AUDIO is unset: the licensed
+# album, which survives every platform's audio ID the way the drone does, and a
+# slow-tv stream carrying music reads as a channel rather than as something
+# broken. SomaFM stays selectable — from the console, from !somafm, and through
+# OBS_BACKGROUND_AUDIO — but it is nobody's default: its edges have refused our
+# IP, so a boot that starts there starts on a bed that may never play. The drone
+# is still the safety net rather than a default — set_background_audio falls
+# back to it when the share has no tracks, which is how the envs without the
+# music PVC (development, local) boot.
 default_background_audio() {
-  case "${1:-twitch}" in
-    twitch) echo somafm ;;
-    *) echo album ;;
-  esac
+  echo album
 }
