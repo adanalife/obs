@@ -83,8 +83,8 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 ## The tripbot contract (the one coupling that survives the split)
 
 tripbot drives the `Background Audio` source over the OBS WebSocket — the audio
-watchdog swaps it to a local bed when SomaFM drops, `!carsound` picks a drone,
-and the console's bed selector switches between all three. Three
+watchdog swaps it to a local bed when the playing one goes silent, `!carsound`
+picks a drone, and the console's bed selector switches between all three. Three
 **hand-maintained contracts** hold that together; change one side → update the
 other:
 
@@ -92,7 +92,7 @@ other:
 | --- | --- | --- |
 | Source name | `Background Audio` in `config/Tripbot.json.tmpl` | `BackgroundAudioInputName` |
 | Car-hum variants | `carhum/render-variants.sh` + the Dockerfiles' `COPY` | the `carSound` list in `pkg/chatbot/carsound.go` |
-| Bed names + paths | `set_background_audio` in `entrypoint.sh` | the bed registry in `pkg/obs/beds` |
+| Bed names + paths | `set_background_audio` in `script/background-audio.sh` | the bed registry in `pkg/obs/beds` |
 
 (Same shape as the eventbus contracts shared with tripbot-console.)
 
