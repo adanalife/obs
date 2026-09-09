@@ -15,6 +15,7 @@ rule that was broken. Same argument as infra's cdk8s unit suite.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,36 @@ OBS_SERVER_PORT: int = json.loads((REPO / "contract.json").read_text())["ports"]
 ]
 
 MANIFESTS = sorted(DIST.glob("*-obs-*.k8s.yaml"))
+
+
+def _music_dir() -> str:
+    """The share path `script/background-audio.sh` scans, read from the script.
+
+    Taken from the shell rather than repeated here for the same reason the ports
+    above come from `contract.json`: a test carrying its own copy of the literal
+    passes happily while the two sides drift apart.
+    """
+    line = re.search(
+        r'^MUSIC_DIR="\$\{MUSIC_DIR:-([^}]+)\}"',
+        (REPO / "script" / "background-audio.sh").read_text(),
+        re.MULTILINE,
+    )
+    assert line, "MUSIC_DIR is not where this test expects it in background-audio.sh"
+    return line.group(1)
+
+
+MUSIC_DIR: str = _music_dir()
+
+
+def _music_mounts(docs: list[dict]) -> list[dict]:
+    """Every volumeMount named `music` across the instance's Deployment."""
+    mounts = []
+    for deploy in _by_kind(docs, "Deployment"):
+        for container in deploy["spec"]["template"]["spec"]["containers"]:
+            mounts += [
+                m for m in container.get("volumeMounts", []) if m["name"] == "music"
+            ]
+    return mounts
 
 
 def _docs(path: Path) -> list[dict]:
@@ -147,3 +178,59 @@ def test_tailscale_ingresses_use_the_shared_proxy_group():
             f"{manifest_name}: {ing['metadata']['name']} has no proxy-group "
             "annotation, so the operator gives it a dedicated proxy pod"
         )
+
+
+@pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)
+def test_the_music_share_is_mounted_where_the_bed_looks_for_it(manifest: Path):
+    """The mount path and the path the album bed scans are one contract.
+
+    `script/background-audio.sh` walks MUSIC_DIR for tracks and falls back to the
+    carhum drone when it finds none. A mount at any other path is therefore not a
+    crash: OBS boots, the album bed finds an empty directory, and the stream plays
+    the drone for as long as nobody notices. Only prose held the two together.
+    """
+    for mount in _music_mounts(_docs(manifest)):
+        assert mount["mountPath"] == MUSIC_DIR, (
+            f"the music share mounts at {mount['mountPath']} but the album bed "
+            f"scans {MUSIC_DIR}; the bed would find no tracks and play the drone"
+        )
+
+
+@pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)
+def test_the_music_share_is_mounted_read_only(manifest: Path):
+    """Nothing in OBS has any business writing to the licensed album library.
+
+    The claim is node-local and shared by every platform's OBS on the one node it
+    lives on, so a writable mount puts five containers a bug away from deleting a
+    library that is restaged by hand.
+    """
+    docs = _docs(manifest)
+    for mount in _music_mounts(docs):
+        assert mount.get("readOnly") is True, (
+            f"the music share mounts writable in {manifest.stem}"
+        )
+    for deploy in _by_kind(docs, "Deployment"):
+        for volume in deploy["spec"]["template"]["spec"].get("volumes", []):
+            if volume["name"] == "music":
+                assert volume["persistentVolumeClaim"].get("readOnly") is True, (
+                    f"the music claim is bound writable in {manifest.stem}"
+                )
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    [m for m in MANIFESTS if m.stem.startswith("prod-")],
+    ids=lambda p: p.stem,
+)
+def test_prod_obs_carries_the_stream_priority_class(manifest: Path):
+    """Prod OBS must outrank everything else scheduled on the minipc.
+
+    Every platform's OBS and the whole rest of the fleet share one node, and that
+    node's internal NVMe already stalls under load. Without the priority class a
+    prod encoder is an ordinary eviction candidate, and evicting one is a stream
+    going off air rather than a pod restarting quietly.
+    """
+    for deploy in _by_kind(_docs(manifest), "Deployment"):
+        assert (
+            deploy["spec"]["template"]["spec"].get("priorityClassName") == "prod-stream"
+        ), f"{manifest.stem} does not claim the prod-stream priority class"
