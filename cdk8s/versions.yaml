@@ -2,7 +2,8 @@
 #
 # Envs/components listed here deploy the pinned release tag (rollback = git
 # revert the bump commit). Anything absent floats on EnvConfig.image_tag
-# (main on stage, latest on local) with imagePullPolicy: Always.
+# (main on stage, latest on development and local) with imagePullPolicy:
+# Always.
 #
 # Tags are the un-suffixed multi-arch manifest tags from release.yml — no `v`
 # prefix (3.4.1, not v3.4.1). The prod-1 pin is bumped automatically by

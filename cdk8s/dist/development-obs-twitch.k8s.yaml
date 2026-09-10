@@ -47,7 +47,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: wait-onscreens
-          image: ghcr.io/adanalife/obs:main
+          image: ghcr.io/adanalife/obs:latest
           imagePullPolicy: Always
           command:
             - sh
@@ -69,7 +69,7 @@ spec:
               memory: 64Mi
       containers:
         - name: obs
-          image: ghcr.io/adanalife/obs:main
+          image: ghcr.io/adanalife/obs:latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
