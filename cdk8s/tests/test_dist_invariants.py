@@ -33,6 +33,13 @@ OBS_SERVER_PORT: int = json.loads((REPO / "contract.json").read_text())["ports"]
 
 MANIFESTS = sorted(DIST.glob("*-obs-*.k8s.yaml"))
 
+# The hardware-encoder plumbing: the env that selects VAAPI, the resource the
+# Intel device plugin hands out for it, and the rpi5 worker that has neither.
+VAAPI_ENCODER = "ffmpeg_vaapi_tex"
+IGPU_RESOURCE = "gpu.intel.com/i915"
+RPI5_BOARD_LABEL = "dana.lol/board"
+RPI5_TAINT_KEY = "dana.lol/rpi5"
+
 
 def _music_dir() -> str:
     """The share path `script/background-audio.sh` scans, read from the script.
@@ -234,3 +241,161 @@ def test_prod_obs_carries_the_stream_priority_class(manifest: Path):
         assert (
             deploy["spec"]["template"]["spec"].get("priorityClassName") == "prod-stream"
         ), f"{manifest.stem} does not claim the prod-stream priority class"
+
+
+def _obs_container(docs: list[dict]) -> dict:
+    """The OBS container itself, not the init container beside it."""
+    deploys = _by_kind(docs, "Deployment")
+    assert len(deploys) == 1, [d["metadata"]["name"] for d in deploys]
+    containers = deploys[0]["spec"]["template"]["spec"]["containers"]
+    assert len(containers) == 1, [c["name"] for c in containers]
+    return containers[0]
+
+
+def _pod_spec(docs: list[dict]) -> dict:
+    return _by_kind(docs, "Deployment")[0]["spec"]["template"]["spec"]
+
+
+def _obs_config(docs: list[dict]) -> dict[str, str]:
+    """The ConfigMap the OBS container reads its settings from.
+
+    Resolved through the container's `envFrom` rather than by name, so a
+    ConfigMap that stops being consumed reads as missing instead of as correct.
+    """
+    wanted = {
+        source["configMapRef"]["name"]
+        for source in _obs_container(docs).get("envFrom", [])
+        if "configMapRef" in source
+    }
+    data: dict[str, str] = {}
+    for cm in _by_kind(docs, "ConfigMap"):
+        if cm["metadata"]["name"] in wanted:
+            data.update(cm["data"])
+    return data
+
+
+@pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)
+def test_the_encoder_and_the_igpu_claim_agree(manifest: Path):
+    """VAAPI needs the i915 device the plugin hands out, and x264 must not hold one.
+
+    `OBS_STREAM_ENCODER=ffmpeg_vaapi_tex` on a pod without
+    `gpu.intel.com/i915` gets no render node: OBS logs the failure once and
+    encodes in software instead, so the stream stays up at half the quality and
+    nothing alerts. The other direction wastes a slot — the minipc's iGPU
+    budget is two live encoders, so an x264 pod holding one can keep a real
+    VAAPI encoder Pending.
+    """
+    docs = _docs(manifest)
+    encoder = _obs_config(docs)["OBS_STREAM_ENCODER"]
+    resources = _obs_container(docs)["resources"]
+    requests = resources["requests"]
+    limits = resources["limits"]
+    if encoder == VAAPI_ENCODER:
+        assert requests.get(IGPU_RESOURCE) == "1", (
+            f"{manifest.stem} asks for {encoder} without claiming "
+            f"{IGPU_RESOURCE}; OBS falls back to software encoding"
+        )
+        # The device plugin only allocates when the two match; a limit-only or
+        # request-only spec is rejected or silently unscheduled.
+        assert limits.get(IGPU_RESOURCE) == requests[IGPU_RESOURCE], (
+            f"{manifest.stem} requests and limits differ for {IGPU_RESOURCE}"
+        )
+    else:
+        assert IGPU_RESOURCE not in requests and IGPU_RESOURCE not in limits, (
+            f"{manifest.stem} encodes with {encoder} but holds an iGPU slot"
+        )
+
+
+@pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)
+def test_a_vaapi_obs_never_prefers_the_rpi5_worker(manifest: Path):
+    """The Pi 5 has no H.264 encoder, so the i915 claim and its affinity exclude.
+
+    A pod carrying both is unschedulable rather than wrong — the arm64 node has
+    no i915 to allocate — but it lands as a preference, so it reads like a hint
+    and costs a platform its scale-up.
+    """
+    docs = _docs(manifest)
+    if IGPU_RESOURCE not in _obs_container(docs)["resources"]["requests"]:
+        return
+    spec = _pod_spec(docs)
+    assert RPI5_BOARD_LABEL not in yaml.safe_dump(spec.get("affinity", {})), (
+        f"{manifest.stem} claims the iGPU and still prefers the rpi5 worker"
+    )
+    assert RPI5_TAINT_KEY not in yaml.safe_dump(spec.get("tolerations", [])), (
+        f"{manifest.stem} claims the iGPU and still tolerates the rpi5 taint"
+    )
+
+
+@pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)
+def test_novnc_and_obs_server_stay_two_separate_ports(manifest: Path):
+    """The split is what lets an Ingress publish one and not the other.
+
+    Every port here is named once on the container and republished under the
+    same name by the Service, because the Ingress backend selects noVNC *by
+    name* — a Service port pointing its `targetPort` at the wrong container
+    port would move obs-server's shutdown route onto the public hostname
+    without changing anything the Ingress says.
+    """
+    docs = _docs(manifest)
+    container_ports = {
+        p["name"]: p["containerPort"] for p in _obs_container(docs)["ports"]
+    }
+    assert container_ports["novnc"] == NOVNC_PORT
+    assert container_ports["obs-server"] == OBS_SERVER_PORT
+    assert NOVNC_PORT != OBS_SERVER_PORT, "the two surfaces share a port"
+
+    services = [
+        svc for svc in _by_kind(docs, "Service") if svc["spec"]["type"] == "ClusterIP"
+    ]
+    assert len(services) == 1, [s["metadata"]["name"] for s in services]
+    for port in services[0]["spec"]["ports"]:
+        assert port["port"] == container_ports[port["name"]], (
+            f"{manifest.stem}: Service port {port['name']} publishes "
+            f"{port['port']} against container port {container_ports[port['name']]}"
+        )
+        assert port["targetPort"] == port["name"], (
+            f"{manifest.stem}: Service port {port['name']} targets "
+            f"{port['targetPort']} rather than the container port of that name"
+        )
+
+
+def test_the_music_claim_is_mounted_exactly_where_its_sync_gate_runs():
+    """Mount and PreSync gate are one decision, and neither belongs on k3d.
+
+    The claim is node-local to the minipc, so an env that grows a mount without
+    a node to bind on leaves OBS Pending — and a mount without the gate lets
+    Argo tear the running OBS down (Recreate) before anything has checked the
+    claim is mountable, which is the teardown the gate exists to hold.
+    """
+    mounting, gated = set(), set()
+    claims = set()
+    for manifest in MANIFESTS:
+        docs = _docs(manifest)
+        if _music_mounts(docs):
+            mounting.add(manifest.stem)
+            claims |= {
+                volume["persistentVolumeClaim"]["claimName"]
+                for volume in _pod_spec(docs).get("volumes", [])
+                if volume["name"] == "music"
+            }
+        for job in _by_kind(docs, "Job"):
+            if job["metadata"]["name"].endswith("-volume-gate"):
+                gated.add(manifest.stem)
+                claims |= {
+                    volume["persistentVolumeClaim"]["claimName"]
+                    for volume in job["spec"]["template"]["spec"]["volumes"]
+                }
+        # The LoadBalancer only exists on the k3d/local envs, which have no such
+        # node — a cheaper tell than reading the cluster out of the filename.
+        if any(
+            svc["spec"]["type"] == "LoadBalancer" for svc in _by_kind(docs, "Service")
+        ):
+            assert not _music_mounts(docs), (
+                f"{manifest.stem} is a k3d env and mounts the node-local music "
+                "claim; the pod would stay Pending on an unbindable volume"
+            )
+    assert mounting, "no manifest mounts the music share at all"
+    assert mounting == gated, (
+        f"mounted in {sorted(mounting)} but gated in {sorted(gated)}"
+    )
+    assert len(claims) == 1, f"the music share is bound under several names: {claims}"
