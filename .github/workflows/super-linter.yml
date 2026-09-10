@@ -3,8 +3,16 @@ name: super-linter
 
 # pre-commit (in CI via pre-commit.yml) + reviewdog cover the per-PR lint
 # surface; super-linter runs as a weekly full-codebase sweep instead of
-# gating every PR/push.
+# gating every PR.
 on:
+  # Also sweep when the sweep's own config lands on main, so a fix to a
+  # reported finding is re-confirmed by the workflow that reported it
+  # rather than waiting for the next Monday cron.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/super-linter.yml
+      - .github/linters/**
   schedule:
     - cron: '25 9 * * 1' # Mondays 09:25 UTC
   workflow_dispatch:
