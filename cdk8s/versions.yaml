@@ -12,4 +12,4 @@
 # unless rolling back.
 prod-1:
   # restarting takes the stream down until OBS reconnects — pick a quiet moment
-  obs: "2.15.0" # x-release-please-version
+  obs: "2.15.1" # x-release-please-version
