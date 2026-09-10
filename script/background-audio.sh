@@ -9,14 +9,14 @@
 #     NOT cleared for our rebroadcast: it reliably trips YouTube's Content ID
 #     and earns copyright strikes there, and Meta's Rights Manager and TikTok's
 #     / Instagram's audio ID are just as strike-happy. Twitch hasn't struck it
-#     so far, so it's the Twitch default — but that's empirical tolerance, not
-#     a license, and could draw a DMCA claim at any time.
+#     so far, but that's empirical tolerance, not a license, and could draw a
+#     DMCA claim at any time.
 #   - carhum — a locally-generated, license-clean drone (see carhum/), baked
-#     into the image. The safe bed everywhere SomaFM can't go, and what the
-#     audio watchdog falls back to when SomaFM drops.
+#     into the image. The safe bed everywhere else, and what the audio watchdog
+#     falls back to when the playing bed goes silent.
 #   - album — a licensed album on the read-only music share, mounted from the
-#     `obs-music` PVC (the infra repo owns the volume). tripbot shuffles and
-#     advances tracks over the WebSocket once it connects.
+#     `obs-music-local` PVC (the infra repo owns the volume). tripbot shuffles
+#     and advances tracks over the WebSocket once it connects.
 #
 # Only the STARTING bed is chosen here. Any bed can play on any platform, and
 # the choice is live-switchable from the admin console (tripbot rewrites this
