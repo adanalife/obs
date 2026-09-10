@@ -176,7 +176,11 @@ ENVS: dict[str, EnvConfig] = {
         name="development",
         namespace="development",
         cluster="k3d",
-        image_tag="main",
+        # The k3d cluster runs on Dana's Apple-silicon laptop, and :main is
+        # amd64-only (dev-image.yml builds one arch, for the amd64 minipc that
+        # serves prod and stage). :latest is the multi-arch release manifest, so
+        # it has an arm64 layer — at the cost of lagging main by a release.
+        image_tag="latest",
         dns_base="dev.whereisdana.today",
         platforms=("twitch",),
         gpu=False,
