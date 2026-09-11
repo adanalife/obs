@@ -13,6 +13,18 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.15.1] — 2026-09-10
+
+### Fixed
+
+- The `development` env deploys the multi-arch `:latest` release image instead of the amd64-only `:main`, so OBS runs on the arm64 k3d cluster. ([#158](https://github.com/adanalife/obs/pull/158))
+
+### CI / Tooling
+
+- Three new manifest invariants cover the album bed's music share: it mounts at the path `script/background-audio.sh` actually scans (read from the script, so the two cannot drift), it mounts read-only on both the volumeMount and the claim, and every prod OBS claims the `prod-stream` priority class. Each was a rule stated only in a comment; a break in any of them degrades or drops a live stream rather than failing a deploy. ([#153](https://github.com/adanalife/obs/pull/153))
+- Re-run the weekly super-linter sweep on push to `main` when its own workflow or `.github/linters/` config changes, so a fixed finding is re-confirmed instead of waiting for the next cron. ([#156](https://github.com/adanalife/obs/pull/156))
+- Four more manifest invariants over the synthed OBS deploys: the VAAPI encoder env and the `gpu.intel.com/i915` claim must agree in both directions (a VAAPI pod without the device silently encodes in software at half the quality; an x264 pod holding one can strand a real encoder), a pod claiming the iGPU never also prefers the arm64 rpi5 worker, the noVNC and obs-server ports stay distinct and each Service port targets the container port of its own name, and the music share is mounted exactly where its PreSync volume gate runs — never on a k3d env, which has no node the claim can bind on. ([#157](https://github.com/adanalife/obs/pull/157))
+
 ## [v2.15.0] — 2026-09-09
 
 ### Changed
