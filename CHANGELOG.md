@@ -13,6 +13,13 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.15.2] — 2026-09-17
+
+### CI / Tooling
+
+- A dist invariant refuses the amd64-only dev image tag on the arm64 k3d envs, which previously failed to pull with "no match for platform in manifest". ([#160](https://github.com/adanalife/obs/pull/160))
+- The changelog gate now recognizes any release-please branch, not just the single-package one. ([#161](https://github.com/adanalife/obs/pull/161))
+
 ## [v2.15.1] — 2026-09-10
 
 ### Fixed
