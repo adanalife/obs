@@ -359,6 +359,62 @@ def test_novnc_and_obs_server_stay_two_separate_ports(manifest: Path):
         )
 
 
+def _single_arch_image() -> str:
+    """The image reference `dev-image.yml` publishes, if that build is single-arch.
+
+    Read off the workflow for the same reason the ports come from
+    `contract.json`: the thing that makes `:main` unusable on arm64 is that one
+    `platforms:` line, so a test naming the tag itself would keep passing the day
+    the build goes multi-arch and the rule stops applying.
+    """
+    workflow = yaml.safe_load(
+        (REPO / ".github" / "workflows" / "dev-image.yml").read_text()
+    )
+    builds = [
+        step["with"]
+        for job in workflow["jobs"].values()
+        for step in job["steps"]
+        if "with" in step and "platforms" in step.get("with", {})
+    ]
+    assert len(builds) == 1, f"dev-image.yml no longer has exactly one build: {builds}"
+    build = builds[0]
+    platforms = [p.strip() for p in str(build["platforms"]).split(",") if p.strip()]
+    if len(platforms) > 1:
+        pytest.skip(f"dev-image.yml is multi-arch now ({platforms}); the rule is moot")
+    tags = [tag.strip() for tag in str(build["tags"]).splitlines() if tag.strip()]
+    assert len(tags) == 1, f"dev-image.yml pushes several tags: {tags}"
+    return tags[0]
+
+
+def test_no_k3d_env_deploys_the_single_arch_dev_tag():
+    """k3d runs on Apple silicon, and the dev image is built for amd64 only.
+
+    `dev-image.yml` publishes one tag from a `linux/amd64` build, so an env
+    pointed at it on an arm64 cluster fails to pull at all — `no match for
+    platform in manifest`, which is how `development` was found broken. Only the
+    release build is multi-arch, so those envs have to ride a release tag.
+    """
+    checked = []
+    for manifest in MANIFESTS:
+        docs = _docs(manifest)
+        # Same k3d tell as the music-claim invariant below: the LoadBalancer
+        # Service exists only on the envs with no minipc node under them.
+        if not any(
+            svc["spec"]["type"] == "LoadBalancer" for svc in _by_kind(docs, "Service")
+        ):
+            continue
+        checked.append(manifest.stem)
+        image = _obs_container(docs)["image"]
+        assert image != _single_arch_image(), (
+            f"{manifest.stem} runs on an arm64 k3d cluster but deploys "
+            f"{image}, which dev-image.yml builds for linux/amd64 only; "
+            "the pod cannot pull it"
+        )
+    assert checked, (
+        "no manifest looks like a k3d env, so this invariant checked nothing"
+    )
+
+
 def test_the_music_claim_is_mounted_exactly_where_its_sync_gate_runs():
     """Mount and PreSync gate are one decision, and neither belongs on k3d.
 
