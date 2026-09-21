@@ -17,6 +17,8 @@ import importlib.machinery
 import importlib.util
 import io
 import pathlib
+import random
+import string
 
 import pytest
 
@@ -173,6 +175,31 @@ def test_a_short_key_reveals_no_prefix_at_all():
     # only their length.
     assert key_rotate.mask("abcdefgh") == "… (8 chars)"
     assert key_rotate.mask("") == "(empty)"
+
+
+def test_mask_never_leaks_more_than_four_characters_of_any_key():
+    """The two examples above cover mask()'s two branches; the property they
+    are examples of is stronger and is what a reader of the output relies on —
+    *no five consecutive characters of any key ever appear*. Stated once here
+    rather than once per length, over a seeded sweep of lengths and alphabets
+    so a widening of the prefix fails this instead of passing both examples.
+
+    Generated rather than realistic on purpose: a key-shaped sample trips the
+    repo's secret scanner.
+    """
+    rng = random.Random(20260920)
+    alphabets = ("ab", string.ascii_lowercase, string.ascii_letters + string.digits)
+    for length in range(1, 64):
+        for alphabet in alphabets:
+            key = "".join(rng.choice(alphabet) for _ in range(length))
+            masked = key_rotate.mask(key)
+            leaked = [
+                key[i : i + 5] for i in range(len(key) - 4) if key[i : i + 5] in masked
+            ]
+            assert not leaked, (length, alphabet[:4], leaked)
+            # And it stays *useful*: the length is always readable, which is
+            # what tells an operator the rotate took the key it was handed.
+            assert str(length) in masked
 
 
 def test_a_key_on_the_command_line_is_refused():
