@@ -158,6 +158,25 @@ if [[ "${OBS_VERTICAL}" == "true" ]]; then
   echo "generated portrait 'Vertical' scene (Main rotated 90° CW)"
 fi
 
+# Record the program scene the collection was seeded with, for the healthcheck's
+# positive check (bin/obs-scene-check). Written here rather than re-derived
+# there because the landscape/portrait choice is made above: a second copy of
+# that rule would drift, and the healthcheck would start demanding "Main" of an
+# instance seeded onto "Vertical".
+#
+# Best-effort: the same variable the check reads, and a write that can't happen
+# is not a reason to refuse to start a stream. An absent file already means "no
+# expectation recorded" there, which degrades to the weaker any-populated-scene
+# assertion. scripts/check-entrypoint.sh runs this file on the CI host, where
+# /run is read-only — that path is exactly this one.
+expected_scene_file="${OBS_EXPECTED_SCENE_FILE:-/run/obs/expected-scene}"
+if mkdir -p "$(dirname "$expected_scene_file")" 2>/dev/null &&
+   jq -r '.current_program_scene' "$scene_file" > "$expected_scene_file" 2>/dev/null; then
+  echo "expected program scene: $(cat "$expected_scene_file")"
+else
+  echo "could not record the expected scene at $expected_scene_file — the healthcheck will only check that some scene is populated" >&2
+fi
+
 # Background audio: write the starting bed onto the single "Background Audio"
 # source. Every platform starts on the licensed album, with the carhum drone as
 # the share-less safety net, and cdk8s overrides it per (env, platform) with

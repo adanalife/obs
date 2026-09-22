@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+# pylint: disable=invalid-name
+"""Confirm OBS came up on the scene it was seeded with, and that it has sources.
+
+The healthcheck's other assertions are negative — obs is running, sway answers,
+the safe-mode dialog is not up — and a negative check passes just as happily on
+an OBS sitting on an empty canvas. This is the positive half: OBS is on the
+program scene the entrypoint wrote into the collection, and that scene holds
+items.
+
+It deliberately does NOT look at pixels. `bin/obs-screenshot-check` does, and a
+blank browser source is not a reason to kill a live stream — the 2026-06-21
+right-rotator outage blanked on *every* restart, so a liveness probe wired to
+that signal would have restart-looped the pod instead of fixing anything. What
+this catches is the state a restart does fix: OBS ignored or lost the seeded
+collection, so the wrong scene (or nothing) is on air.
+
+Same asymmetry in the failure handling: it only exits non-zero on positive
+evidence of a bad scene. A WebSocket that won't answer — still starting, plugin
+not up yet — is unknown, not bad, and exits 0 to leave the verdict to the
+process and compositor checks that can tell.
+
+Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-scene-check
+
+  OBS_EXPECTED_SCENE_FILE  where the entrypoint recorded the scene it seeded
+                           (default /run/obs/expected-scene)
+  OBS_EXPECTED_SCENE       the scene name directly, overriding the file
+"""
+
+import os
+import sys
+
+DEFAULT_SCENE_FILE = "/run/obs/expected-scene"
+
+
+def expected_scene(env):
+    """The program scene the entrypoint seeded, or "" when it didn't say.
+
+    The name is read rather than re-derived from STREAM_PLATFORM: the
+    landscape/portrait choice lives in entrypoint.sh, and a second copy of that
+    rule here would be a contract that drifts silently — the healthcheck would
+    start demanding "Main" of an instance the entrypoint had put on "Vertical".
+    """
+    direct = (env.get("OBS_EXPECTED_SCENE") or "").strip()
+    if direct:
+        return direct
+    path = env.get("OBS_EXPECTED_SCENE_FILE") or DEFAULT_SCENE_FILE
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        # An image built before the entrypoint wrote the file, or a hand-run
+        # container. Nothing to compare against is not a failing scene.
+        return ""
+
+
+def check_scene(client, want):
+    """Complaints about the live scene — empty when it's the seeded one.
+
+    `want` of "" checks only that *some* scene is loaded and populated, which
+    is still more than the modal-absence check asserted.
+    """
+    live = client.get_current_program_scene().current_program_scene_name
+    if want and live != want:
+        return [f"on scene {live!r}, expected {want!r}"]
+    if not live:
+        return ["no program scene is loaded"]
+    items = client.get_scene_item_list(live).scene_items
+    if not items:
+        return [f"scene {live!r} has no sources"]
+    return []
+
+
+def main() -> int:
+    try:
+        import obsws_python as obs  # pylint: disable=import-outside-toplevel
+    except ImportError:
+        print(
+            "obsws-python not found — run via: "
+            "uv run --with obsws-python bin/obs-scene-check",
+            file=sys.stderr,
+        )
+        return 1
+
+    host = os.environ.get("OBS_WEBSOCKET_HOST", "localhost")
+    port = int(os.environ.get("OBS_WEBSOCKET_PORT", "4455"))
+    password = os.environ.get("OBS_WEBSOCKET_PASSWD", "")
+    want = expected_scene(os.environ)
+
+    try:
+        with obs.ReqClient(
+            host=host, port=port, password=password, timeout=5
+        ) as client:
+            problems = check_scene(client, want)
+    except Exception as e:  # pylint: disable=broad-except
+        # Unknown, not bad — see the module docstring. Reported on stderr so a
+        # probe that keeps passing while OBS is unreachable is still visible in
+        # `kubectl describe`, rather than looking like a clean check.
+        print(f"scene check skipped: OBS WebSocket unavailable ({e})", file=sys.stderr)
+        return 0
+
+    for p in problems:
+        print(f"OBS {p}", file=sys.stderr)
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

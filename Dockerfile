@@ -105,8 +105,12 @@ COPY script/ /opt/obs/script/
 COPY entrypoint.sh /opt/obs/entrypoint.sh
 COPY healthcheck.sh /opt/obs/healthcheck.sh
 COPY bin/obs-browser-refresh /opt/obs/bin/obs-browser-refresh
+# The healthcheck runs this one on every probe, so it ships in the image
+# rather than staying a break-glass helper run from a checkout.
+COPY bin/obs-scene-check /opt/obs/bin/obs-scene-check
 RUN chmod +x /opt/obs/entrypoint.sh /opt/obs/healthcheck.sh \
-             /opt/obs/bin/obs-browser-refresh /opt/obs/script/*.sh
+             /opt/obs/bin/obs-browser-refresh /opt/obs/bin/obs-scene-check \
+             /opt/obs/script/*.sh
 
 # Per-program supervisor configs live in /etc/supervisor/conf.d/. The
 # default supervisord.conf from the package globs *.conf out of that dir.

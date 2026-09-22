@@ -46,6 +46,7 @@ boot() {
     HOME="$home" \
     XDG_RUNTIME_DIR="$home/runtime" \
     OBS_ASSETS="$repo" \
+    OBS_EXPECTED_SCENE_FILE="$home/expected-scene" \
     "$@" \
     bash "$repo/entrypoint.sh" > "$home/boot.log" 2>&1; then
     cat "$home/boot.log" >&2
@@ -155,6 +156,12 @@ jq -e '
     ))
 ' "$scene" >/dev/null || fail "portrait: Vertical items are not Main rotated 90° CW"
 
+# The scene name the healthcheck compares against (bin/obs-scene-check reads
+# this file). It has to follow the orientation: a portrait pod told to expect
+# "Main" fails its own liveness probe and restart-loops a healthy stream.
+[[ $(cat "$work/tiktok-scene/expected-scene") == Vertical ]] ||
+  fail "portrait: expected-scene should name the Vertical scene"
+
 # Landscape platforms must NOT get one — a stray Vertical scene in the
 # collection is one misclick from going out sideways.
 scene_root=$(boot twitch-scene STREAM_PLATFORM=twitch)
@@ -163,6 +170,8 @@ scene=$scene_root/basic/scenes/Tripbot.json
   fail "landscape: should not generate a Vertical scene"
 [[ $(jq -r '.current_program_scene' "$scene") == Main ]] ||
   fail "landscape: should boot onto Main"
+[[ $(cat "$work/twitch-scene/expected-scene") == Main ]] ||
+  fail "landscape: expected-scene should name Main"
 
 # --- Stream target ----------------------------------------------------------
 # service.json is only rendered when there is somewhere real to push to;
@@ -271,5 +280,7 @@ grep -qx Vertical <<< "$argv" || fail "tiktok: should go live on the Vertical sc
 
 argv=$(launch twitch-forced-vertical)
 grep -qx Vertical <<< "$argv" || fail "OBS_VERTICAL=true should launch onto Vertical"
+[[ $(cat "$work/twitch-forced-vertical/expected-scene") == Vertical ]] ||
+  fail "OBS_VERTICAL=true should record Vertical as the expected scene"
 
 echo "entrypoint: all boot paths OK"

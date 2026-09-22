@@ -38,6 +38,7 @@ def load(name):
 repoint = load("obs-input-repoint")
 media_restart = load("obs-media-restart")
 screenshot_check = load("obs-screenshot-check")
+scene_check = load("obs-scene-check")
 key_rotate = load("obs-stream-key-rotate")
 
 
@@ -454,3 +455,86 @@ def test_renders_video_needs_both_dimensions():
         {"sceneItemTransform": {"sourceWidth": 10, "sourceHeight": 0}}
     )
     assert not screenshot_check.renders_video({})
+
+
+# --- obs-scene-check: the healthcheck's positive assertion ---
+
+
+class _SceneClient:
+    """Answers the two reads obs-scene-check makes."""
+
+    def __init__(self, live, items=("Dashcam",)):
+        self.live = live
+        self.items = list(items)
+
+    def get_current_program_scene(self):
+        return _Reply(current_program_scene_name=self.live)
+
+    def get_scene_item_list(self, scene):
+        assert scene == self.live, "asked for the items of a scene that isn't live"
+        return _Reply(scene_items=[{"sourceName": n} for n in self.items])
+
+
+def test_the_seeded_scene_on_air_with_sources_is_healthy():
+    assert scene_check.check_scene(_SceneClient("Main"), "Main") == []
+
+
+def test_a_different_scene_on_air_is_a_complaint():
+    # OBS ignored or lost the seeded collection — the one state in this file
+    # that a pod restart actually fixes.
+    (problem,) = scene_check.check_scene(_SceneClient("Test"), "Main")
+    assert "expected 'Main'" in problem
+
+
+def test_the_seeded_scene_may_be_the_portrait_one():
+    # A tiktok/instagram instance is seeded onto "Vertical"; demanding "Main"
+    # of it would restart-loop a healthy portrait pod.
+    assert scene_check.check_scene(_SceneClient("Vertical"), "Vertical") == []
+    assert scene_check.check_scene(_SceneClient("Vertical"), "Main") != []
+
+
+def test_an_empty_scene_is_a_complaint_even_when_it_is_the_right_one():
+    # The whole point of the positive check: "Main" is loaded and holds
+    # nothing, which every negative assertion in healthcheck.sh passes.
+    (problem,) = scene_check.check_scene(_SceneClient("Main", items=()), "Main")
+    assert "no sources" in problem
+
+
+def test_no_scene_loaded_is_a_complaint():
+    (problem,) = scene_check.check_scene(_SceneClient(""), "")
+    assert "no program scene" in problem
+
+
+def test_without_an_expected_name_any_populated_scene_passes():
+    # An image built before the entrypoint recorded the name still gets the
+    # empty-canvas half of the check rather than nothing.
+    assert scene_check.check_scene(_SceneClient("Test"), "") == []
+    assert scene_check.check_scene(_SceneClient("Test", items=()), "") != []
+
+
+def test_expected_scene_prefers_the_env_override_to_the_file(tmp_path):
+    f = tmp_path / "expected-scene"
+    f.write_text("Main\n")
+    env = {"OBS_EXPECTED_SCENE_FILE": str(f), "OBS_EXPECTED_SCENE": "Vertical"}
+    assert scene_check.expected_scene(env) == "Vertical"
+
+
+def test_expected_scene_reads_the_file_the_entrypoint_wrote(tmp_path):
+    f = tmp_path / "expected-scene"
+    # jq -r leaves a trailing newline; comparing it raw would never match.
+    f.write_text("Vertical\n")
+    assert scene_check.expected_scene({"OBS_EXPECTED_SCENE_FILE": str(f)}) == "Vertical"
+
+
+def test_a_missing_file_means_no_expectation_not_an_error(tmp_path):
+    missing = str(tmp_path / "nope")
+    assert scene_check.expected_scene({"OBS_EXPECTED_SCENE_FILE": missing}) == ""
+    assert scene_check.expected_scene({}) == ""
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\n"])
+def test_a_blank_override_falls_through_to_the_file(blank, tmp_path):
+    f = tmp_path / "expected-scene"
+    f.write_text("Main")
+    env = {"OBS_EXPECTED_SCENE_FILE": str(f), "OBS_EXPECTED_SCENE": blank}
+    assert scene_check.expected_scene(env) == "Main"
