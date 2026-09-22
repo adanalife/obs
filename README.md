@@ -91,7 +91,7 @@ other:
 | Contract | Here | In tripbot |
 | --- | --- | --- |
 | Source name | `Background Audio` in `config/Tripbot.json.tmpl` | `BackgroundAudioInputName` |
-| Car-hum variants | `carhum/render-variants.sh` + the Dockerfiles' `COPY` | the `carSound` list in `pkg/chatbot/carsound.go` |
+| Car-hum variants | `carhum/render-variants.sh` + the Dockerfiles' `COPY` | the `Voicings` list in `pkg/obs/beds` |
 | Bed names + paths | `set_background_audio` in `script/background-audio.sh` | the bed registry in `pkg/obs/beds` |
 
 (Same shape as the eventbus contracts shared with tripbot-console.)

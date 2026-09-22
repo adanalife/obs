@@ -9,8 +9,8 @@ It's the source of the "Car Hum" background-audio bed the OBS **YouTube**
 scene plays in place of the SomaFM source (which is stripped on YouTube — see
 `entrypoint.sh`). Nothing is committed to git: `render-variants.sh` renders
 four seamless-looping variant FLACs (`idle`, `highway`, `backroad`,
-`mountain`) at Docker **build time** into `/opt/tripbot/assets/carhum/`, and
-tripbot's `!carsound` command cycles among them live.
+`mountain`) at Docker **build time** into `/opt/tripbot/assets/carhum/`. Which
+one plays is the drone bed's *voicing*, selectable from the console.
 
 ## Rendering the variants
 
@@ -22,8 +22,10 @@ task carhum:render          # from the repo root → carhum/out/
 ```
 
 - The variant names + count are a contract shared with the `carhum` builder
-  stage in `Dockerfile{,.arm64}` and the `carSounds` registry in tripbot's
-  `pkg/chatbot/carsound.go` — keep all three in sync (see the main README).
+  stage in `Dockerfile{,.arm64}` and the `Voicings` list in tripbot's
+  `pkg/obs/beds` — keep all three in sync (see the main README). A name
+  dropped here is a path tripbot still offers and OBS cannot open, which is
+  silence.
 - `--loop 6` crossfades the tail back over the head so each file loops with
   **no audible seam** when OBS repeats it.
 - FLAC keeps the loop gapless (no encoder padding) and compresses this

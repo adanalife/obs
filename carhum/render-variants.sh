@@ -6,10 +6,11 @@
 # image while still shipping procedurally-generated (not git-committed) audio.
 # Needs python3 with numpy+scipy importable and ffmpeg on PATH.
 #
-# The file NAMES here are a contract with tripbot: `beds.CarHumFile` selects the
-# idle drone and `beds.FallbackFile` the watchdog's copy of it, both by absolute
-# path inside the OBS container. Renaming either one here silences the bed.
-# Nothing selects the highway/backroad/mountain voicings.
+# The file NAMES here are a contract with tripbot: `beds.Voicings` lists these
+# presets and `beds.CarHumFile` builds the path from one, while
+# `beds.FallbackFile` names the watchdog's copy of idle — all by absolute path
+# inside the OBS container. Renaming or dropping one here silences the bed for
+# anyone who has that voicing selected.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
