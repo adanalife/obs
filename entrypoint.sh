@@ -158,6 +158,14 @@ if [[ "${OBS_VERTICAL}" == "true" ]]; then
   echo "generated portrait 'Vertical' scene (Main rotated 90° CW)"
 fi
 
+# Record the program scene the collection was seeded with, for the healthcheck's
+# positive check (bin/obs-scene-check). Written here rather than re-derived
+# there because the landscape/portrait choice is made above: a second copy of
+# that rule would drift, and the healthcheck would start demanding "Main" of an
+# instance seeded onto "Vertical".
+mkdir -p /run/obs
+jq -r '.current_program_scene' "$scene_file" > /run/obs/expected-scene
+
 # Background audio: write the starting bed onto the single "Background Audio"
 # source. Every platform starts on the licensed album, with the carhum drone as
 # the share-less safety net, and cdk8s overrides it per (env, platform) with
