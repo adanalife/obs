@@ -13,6 +13,22 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.16.0] — 2026-09-22
+
+### Added
+
+- The healthcheck now confirms OBS is on the scene it was seeded with and that the scene holds sources — the positive half of a check that was all absence-of-crash. ([#166](https://github.com/adanalife/obs/pull/166))
+
+### CI / Tooling
+
+- A dist invariant refuses the amd64-only dev image tag on the arm64 k3d envs, which previously failed to pull with "no match for platform in manifest". ([#160](https://github.com/adanalife/obs/pull/160))
+- The changelog gate now recognizes any release-please branch, not just the single-package one. ([#161](https://github.com/adanalife/obs/pull/161))
+
+### Misc
+
+- The stream-key mask is checked against the property its two examples were examples of: no five consecutive characters of any key reach the output. ([#163](https://github.com/adanalife/obs/pull/163))
+- The car-hum docs describe the voicing selector that replaced `!carsound`, and the contract table names the list that actually holds the variant names. ([#165](https://github.com/adanalife/obs/pull/165))
+
 ## [v2.15.1] — 2026-09-10
 
 ### Fixed
