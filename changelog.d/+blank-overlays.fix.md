@@ -1,0 +1,1 @@
+The browser refresher skips the Middle Text, Timewarp, GPS and leaderboard overlays, which are blank between uses, instead of reloading all four on every pass; its summary line counts them as skipped.

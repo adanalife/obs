@@ -5,6 +5,7 @@ bit depth Qt happens to write."""
 
 from __future__ import annotations
 
+import base64
 import importlib.machinery
 import importlib.util
 import pathlib
@@ -63,3 +64,30 @@ def test_rejects_non_bmp():
 
 def test_decode_screenshot_strips_data_uri():
     assert refresh.decode_screenshot("data:image/bmp;base64,Qk0=") == b"BM"
+
+
+class FakeClient:
+    """Every source serves a blank frame; records which ones were reloaded."""
+
+    def __init__(self):
+        self.set_calls = []
+
+    def get_input_settings(self, name):
+        return type("R", (), {"input_settings": {"url": f"http://x/{name}"}})
+
+    def get_source_screenshot(self, *_):
+        blank = base64.b64encode(bmp([b"\0\0\0"] * 4, width=2, bpp=24)).decode()
+        return type("R", (), {"image_data": "data:image/bmp;base64," + blank})
+
+    def set_input_settings(self, name, settings, _overlay):
+        self.set_calls.append((name, settings["url"]))
+
+
+def test_blank_by_design_overlays_are_skipped_and_a_blank_rotator_is_reloaded(
+    monkeypatch,
+):
+    monkeypatch.setattr(refresh, "RELOAD_GAP_S", 0)
+    client = FakeClient()
+    sources = ["right rotating", *sorted(refresh.BLANK_BY_DESIGN)]
+    assert refresh.refresh_sources(client, sources) == (1, 4)
+    assert {name for name, _ in client.set_calls} == {"right rotating"}

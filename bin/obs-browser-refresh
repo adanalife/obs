@@ -10,10 +10,10 @@ browser source and does that swap for the blank ones only; a source with
 content on it is left alone.
 
 Blankness is judged from a small BMP screenshot because BMP is raw pixels the
-stdlib can read — no image library in the venv. A source that is blank by
-design (an overlay between shows) reads as dead too and gets reloaded; that is
-a fresh renderer for a page that was showing nothing, so nothing visible
-changes.
+stdlib can read — no image library in the venv. The overlays that are blank by
+design between uses (BLANK_BY_DESIGN) are skipped: a screenshot can't tell
+them apart from a dead page, so reloading them every pass only buries a real
+blank in the log.
 
 Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-browser-refresh
 """
@@ -35,6 +35,24 @@ SHOT_W, SHOT_H = 64, 36
 RELOAD_GAP_S = 0.6
 
 BLANK_URL = "about:blank"
+
+# Browser sources that render nothing between uses, keyed by their OBS source
+# name in config/Tripbot.json.tmpl. Each is shown only while tripbot has it up
+# and is transparent the rest of the time:
+#   - Middle Text: a chat command or announcement puts text up for a while.
+#   - Timewarp: shown only while a timewarp is running.
+#   - GPS: shown on a gps.show command, hidden again after a while.
+#   - leaderboard: a !leaderboard render, hidden again after ~20s.
+# A skipped source whose renderer genuinely dies stays dead until OBS restarts;
+# a health marker rendered by the overlay page would let these be checked too.
+BLANK_BY_DESIGN = frozenset(
+    {
+        "Middle Text Onscreen - Center",
+        "Timewarp Onscreen - Center",
+        "GPS",
+        "leaderboard",
+    }
+)
 
 
 def is_blank(bmp: bytes) -> bool:
@@ -65,6 +83,28 @@ def decode_screenshot(data_uri: str) -> bytes:
     return base64.b64decode(data_uri.split(",", 1)[1])
 
 
+def refresh_sources(client, sources: list[str]) -> tuple[int, int]:
+    """Respawn the renderer of every blank source; return (reloaded, skipped)."""
+    reloaded = skipped = 0
+    for name in sources:
+        if name in BLANK_BY_DESIGN:
+            skipped += 1
+            continue
+        url = client.get_input_settings(name).input_settings.get("url")
+        if not url:
+            # A file-backed source has nothing to reload this way.
+            continue
+        shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
+        if not is_blank(decode_screenshot(shot.image_data)):
+            continue
+        client.set_input_settings(name, {"url": BLANK_URL}, True)
+        time.sleep(RELOAD_GAP_S)
+        client.set_input_settings(name, {"url": url}, True)
+        reloaded += 1
+        print(f"Reloaded blank source: {name}")
+    return reloaded, skipped
+
+
 def main() -> int:
     try:
         import obsws_python as obs  # pylint: disable=import-outside-toplevel
@@ -92,22 +132,10 @@ def main() -> int:
             if not sources:
                 print("No browser sources found in OBS.")
                 return 0
-            reloaded = 0
-            for name in sources:
-                url = client.get_input_settings(name).input_settings.get("url")
-                if not url:
-                    # A file-backed source has nothing to reload this way.
-                    continue
-                shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
-                if not is_blank(decode_screenshot(shot.image_data)):
-                    continue
-                client.set_input_settings(name, {"url": BLANK_URL}, True)
-                time.sleep(RELOAD_GAP_S)
-                client.set_input_settings(name, {"url": url}, True)
-                reloaded += 1
-                print(f"Reloaded blank source: {name}")
+            reloaded, skipped = refresh_sources(client, sources)
             print(
-                f"Done — {len(sources)} browser source(s) checked, {reloaded} reloaded."
+                f"Done — {len(sources)} browser source(s) checked, {reloaded} reloaded, "
+                f"{skipped} skipped as blank by design."
             )
     except ConnectionRefusedError:
         print(
