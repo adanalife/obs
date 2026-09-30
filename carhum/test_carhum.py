@@ -94,8 +94,20 @@ def test_seamless_loop_trims_one_crossfade(tmp_path):
     # path is the one that actually reaches the stream. The tail is crossfaded
     # back over the head, costing exactly one crossfade of length.
     xfade = 0.5
-    frames, _ = read(render(tmp_path, "--loop", str(xfade), name="loop.wav"))
+    frames, samples = read(render(tmp_path, "--loop", str(xfade), name="loop.wav"))
     assert frames == int(DURATION * SR) - int(xfade * SR)
+
+    # The length alone is satisfied by a plain truncation, which is the very
+    # seam this mode exists to remove. In a correct loop the last sample and
+    # the first are neighbours in the source signal, so their step is bounded
+    # by the largest step anywhere else in the file; a cut lands two unrelated
+    # samples next to each other and clicks once per lap on the stream.
+    for channel in (samples[0::2], samples[1::2]):
+        step = max(abs(b - a) for a, b in zip(channel, channel[1:]))
+        assert abs(channel[0] - channel[-1]) <= step, (
+            f"the loop point steps {abs(channel[0] - channel[-1])} against a "
+            f"largest in-file step of {step} — the tail is not blended into the head"
+        )
 
 
 if __name__ == "__main__":
