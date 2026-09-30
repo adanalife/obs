@@ -303,9 +303,10 @@ def _onscreens_wait_container(
 
     OBS's CEF browser sources fetch the overlays once, on first paint. Paint
     against an unready onscreens-server and CEF caches the blank result; the FPS
-    cap keeps it from repainting, so the overlays stay blank until something
-    reloads them — up to an hour later. Waiting for the backend costs a few
-    seconds of startup and removes the race entirely.
+    cap keeps it from repainting, so the overlays stay blank until the
+    browser-source refresh next respawns them — up to five minutes later.
+    Waiting for the backend costs a few seconds of startup and removes the race
+    entirely.
 
     Runs the OBS image itself: it is already being pulled for this pod and
     already ships curl, so there is no second base image to keep current.
@@ -345,7 +346,7 @@ class ObsInstance(Construct):
     def __init__(
         self,
         scope: Construct,
-        platform: str,  # "twitch" | "youtube"
+        platform: str,  # one of platforms.json's set
         *,
         env: EnvConfig,
         streaming: bool = False,  # emit the stream-key ExternalSecret
@@ -380,9 +381,8 @@ class ObsInstance(Construct):
                 if platform in env.obs_fps
                 else {}
             ),
-            # Which bed the "Background Audio" source starts on. Left unset the
-            # entrypoint picks its own per-platform default, so an env that
-            # doesn't care renders exactly as before.
+            # Which bed the "Background Audio" source starts on. Left unset,
+            # the entrypoint starts on the album.
             **(
                 {"OBS_BACKGROUND_AUDIO": env.obs_background_audio[platform]}
                 if platform in env.obs_background_audio

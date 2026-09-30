@@ -2,9 +2,8 @@
 like its sibling Go services.
 
 The point of most of them is `/version`: its four keys are a cross-repo
-contract with the console's status table, asserted nowhere until now, in a
-repo whose CI ran no Python tests over `script/` at all. Renaming one used to
-degrade the console silently.
+contract with the console's status table, and renaming one degrades the
+console silently.
 """
 
 from __future__ import annotations

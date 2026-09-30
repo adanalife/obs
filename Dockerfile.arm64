@@ -73,15 +73,15 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
       # CEF runtime deps (chromium needs these even headless) \
       libnss3 libgbm1 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 \
       libcups2t64 libxdamage1 libxkbcommon0 libxkbfile1 libexpat1 libpango-1.0-0 \
-      # obsws-python venv for the entrypoint's hourly browser-source refresh \
+      # obsws-python venv for the browser-source refresh and the scene check \
       python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # obsws-python (in a venv to stay clear of PEP 668 system-managed python)
-# powers the hourly browser-source refresh — a supervisor program that
-# works around CEF's per-frame memory leak. websockify rides in the
-# same venv — it bridges the browser's WebSocket to wayvnc's TCP :5900 for
-# the noVNC client.
+# powers the browser-source refresh — a supervisor program that respawns the
+# renderer of any browser source showing a blank frame, every five minutes —
+# and the healthcheck's scene check. websockify rides in the same venv — it
+# bridges the browser's WebSocket to wayvnc's TCP :5900 for the noVNC client.
 RUN python3 -m venv /opt/obs/venv \
     && /opt/obs/venv/bin/pip install --no-cache-dir obsws-python 'websockify==0.13.0' 'flask==3.1.0'
 
@@ -137,11 +137,10 @@ COPY supervisor/ /etc/supervisor/conf.d/
 
 COPY assets/twitch-overlay-left.png assets/twitch-overlay-right.png /opt/tripbot/assets/
 
-# License-clean car-interior drones — the YouTube scene's background audio,
-# cycled live by tripbot's !carsound command. Rendered at build time by the
-# `carhum` stage above (carhum/), not committed to git. The "Car Hum"
-# ffmpeg_source in Tripbot.json.tmpl points at one of these; SomaFM is stripped
-# on YouTube and a car-sound plays in its place.
+# License-clean car-interior drones, rendered at build time by the `carhum`
+# stage above (carhum/), not committed to git. The bed every platform falls back
+# to when the music share has no tracks, and the one tripbot's audio watchdog
+# swaps to when the playing bed goes silent; !carsound picks the voicing.
 COPY --from=carhum /opt/carhum/out/*.flac /opt/tripbot/assets/carhum/
 
 ARG VERSION=dev

@@ -87,9 +87,9 @@ echo "OBS stream encoder: ${OBS_STREAM_ENCODER}"
 
 # Streaming target platform. Default `twitch` streams to Twitch
 # (service "Twitch", server "auto" — OBS resolves "auto" via Twitch's
-# ingest API at connect time). Set
-# STREAM_PLATFORM=youtube (k8s configmap in the obs-youtube overlay) to
-# point the same canvas/encoder at YouTube's RTMPS ingest. service.json.tmpl
+# ingest API at connect time). Set STREAM_PLATFORM=youtube (cdk8s puts it
+# in each non-twitch instance's ConfigMap) to point the same canvas/encoder
+# at YouTube's RTMPS ingest. service.json.tmpl
 # consumes OBS_STREAM_SERVICE / OBS_STREAM_SERVER via envsubst below.
 # Most platforms are OBS built-in services (rtmp_common: OBS resolves the
 # ingest by service name). TikTok isn't a built-in service, so it pushes to a
@@ -264,6 +264,6 @@ chmod 0700 "$XDG_RUNTIME_DIR"
 envsubst < "${OBS_ASSETS}"/config/wayvnc.cfg.tmpl > "$XDG_RUNTIME_DIR/wayvnc.cfg"
 
 # Hand off to supervisord. It manages sway, wayvnc, obs, noVNC/websockify,
-# obs-server, and the hourly browser-source refresh (with each program's
+# obs-server, and the five-minute browser-source refresh (with each program's
 # start order + Wayland-socket dependency handled in script/start-*.sh).
 exec supervisord -n -c /etc/supervisor/supervisord.conf
