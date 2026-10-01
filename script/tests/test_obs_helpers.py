@@ -19,6 +19,8 @@ import io
 import pathlib
 import random
 import string
+import sys
+import types
 
 import pytest
 
@@ -221,6 +223,20 @@ def test_the_env_wins_over_stdin():
 def test_stdin_is_read_when_the_env_is_unset():
     dry, key, error = key_rotate.read_key([], {}, io.StringIO("  piped_key\n"))
     assert (dry, key, error) == (False, "piped_key", None)
+
+
+def test_a_terminal_stdin_is_not_waited_on():
+    # With no key in the env and a human at the keyboard, reading stdin would
+    # sit there forever with no prompt; the usage error is the prompt.
+    class _Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+        def read(self, *args):
+            raise AssertionError("blocked reading a key from the terminal")
+
+    _, _, error = key_rotate.read_key([], {}, _Terminal())
+    assert error is not None
 
 
 def test_no_key_anywhere_is_an_error_not_an_empty_rotation():
@@ -538,3 +554,60 @@ def test_a_blank_override_falls_through_to_the_file(blank, tmp_path):
     f.write_text("Main")
     env = {"OBS_EXPECTED_SCENE_FILE": str(f), "OBS_EXPECTED_SCENE": blank}
     assert scene_check.expected_scene(env) == "Main"
+
+
+# --- obs-scene-check as the liveness probe runs it: main()'s exit code ---
+
+
+def _obsws(monkeypatch, client_class):
+    """Stand in for obsws_python, which main() imports lazily and CI lacks."""
+    monkeypatch.setitem(
+        sys.modules, "obsws_python", types.SimpleNamespace(ReqClient=client_class)
+    )
+
+
+class _Connected:
+    """A ReqClient whose context hands back a prepared scene client."""
+
+    scene = None
+
+    def __init__(self, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self.scene
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_an_unreachable_websocket_is_unknown_not_unhealthy(monkeypatch, capsys):
+    # The probe runs from the first second of the pod's life, before the
+    # websocket plugin is listening. Failing here would restart-loop every
+    # healthy boot; the process and compositor checks own that verdict.
+    class _Refusing:
+        def __init__(self, **kwargs):
+            raise ConnectionRefusedError("still starting")
+
+    _obsws(monkeypatch, _Refusing)
+    assert scene_check.main() == 0
+    assert "skipped" in capsys.readouterr().err
+
+
+def test_the_wrong_scene_on_air_fails_the_probe(monkeypatch, capsys):
+    class _OnTest(_Connected):
+        scene = _SceneClient("Test")
+
+    _obsws(monkeypatch, _OnTest)
+    monkeypatch.setenv("OBS_EXPECTED_SCENE", "Main")
+    assert scene_check.main() == 1
+    assert "expected 'Main'" in capsys.readouterr().err
+
+
+def test_the_seeded_scene_with_sources_passes_the_probe(monkeypatch):
+    class _OnMain(_Connected):
+        scene = _SceneClient("Main")
+
+    _obsws(monkeypatch, _OnMain)
+    monkeypatch.setenv("OBS_EXPECTED_SCENE", "Main")
+    assert scene_check.main() == 0

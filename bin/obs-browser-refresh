@@ -65,6 +65,35 @@ def decode_screenshot(data_uri: str) -> bytes:
     return base64.b64decode(data_uri.split(",", 1)[1])
 
 
+def refresh_blank(client, sleep=time.sleep):
+    """Respawn the renderer of every blank browser source.
+
+    Returns (checked, reloaded). A source with no url is file-backed and has
+    nothing to reload this way; a source with content on it is left alone.
+    The swap restores the source's own url, and both writes merge into the
+    existing settings (overlay) so its size, css and the rest survive.
+    """
+    sources = [
+        i["inputName"]
+        for i in client.get_input_list().inputs
+        if i["inputKind"] == "browser_source"
+    ]
+    reloaded = 0
+    for name in sources:
+        url = client.get_input_settings(name).input_settings.get("url")
+        if not url:
+            continue
+        shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
+        if not is_blank(decode_screenshot(shot.image_data)):
+            continue
+        client.set_input_settings(name, {"url": BLANK_URL}, True)
+        sleep(RELOAD_GAP_S)
+        client.set_input_settings(name, {"url": url}, True)
+        reloaded += 1
+        print(f"Reloaded blank source: {name}")
+    return len(sources), reloaded
+
+
 def main() -> int:
     try:
         import obsws_python as obs  # pylint: disable=import-outside-toplevel
@@ -83,32 +112,11 @@ def main() -> int:
         with obs.ReqClient(
             host=host, port=port, password=password, timeout=10
         ) as client:
-            result = client.get_input_list()
-            sources = [
-                i["inputName"]
-                for i in result.inputs
-                if i["inputKind"] == "browser_source"
-            ]
-            if not sources:
+            checked, reloaded = refresh_blank(client)
+            if not checked:
                 print("No browser sources found in OBS.")
                 return 0
-            reloaded = 0
-            for name in sources:
-                url = client.get_input_settings(name).input_settings.get("url")
-                if not url:
-                    # A file-backed source has nothing to reload this way.
-                    continue
-                shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
-                if not is_blank(decode_screenshot(shot.image_data)):
-                    continue
-                client.set_input_settings(name, {"url": BLANK_URL}, True)
-                time.sleep(RELOAD_GAP_S)
-                client.set_input_settings(name, {"url": url}, True)
-                reloaded += 1
-                print(f"Reloaded blank source: {name}")
-            print(
-                f"Done — {len(sources)} browser source(s) checked, {reloaded} reloaded."
-            )
+            print(f"Done — {checked} browser source(s) checked, {reloaded} reloaded.")
     except ConnectionRefusedError:
         print(
             f"Could not connect to OBS WebSocket at {host}:{port} — is OBS running?",
