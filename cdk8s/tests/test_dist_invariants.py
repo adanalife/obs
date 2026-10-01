@@ -376,7 +376,7 @@ def _single_arch_image() -> str:
         for step in job["steps"]
         if "with" in step and "platforms" in step.get("with", {})
     ]
-    assert len(builds) == 1, f"dev-image.yml no longer has exactly one build: {builds}"
+    assert len(builds) == 1, f"dev-image.yml does not have exactly one build: {builds}"
     build = builds[0]
     platforms = [p.strip() for p in str(build["platforms"]).split(",") if p.strip()]
     if len(platforms) > 1:

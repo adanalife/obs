@@ -33,7 +33,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # OBS connects to the iGPU's render engine for OpenGL composite via the
 # sway Wayland compositor (WLR_BACKENDS=headless), so /dev/dri/card0 must
 # be mounted at runtime — provided by the Intel device plugin's
-# gpu.intel.com/i915 resource grant in the prod-1 overlay.
+# gpu.intel.com/i915 resource grant on the GPU envs (cdk8s/config.py).
 #
 # Display stack: sway (headless Wayland compositor) + wayvnc (Wayland VNC
 # server) + qt6-wayland (Qt's Wayland QPA plugin for OBS's UI) — keeps
@@ -72,10 +72,10 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
     && rm -rf /var/lib/apt/lists/*
 
 # obsws-python (in a venv to stay clear of PEP 668 system-managed python)
-# powers the hourly browser-source refresh — a supervisor program that
-# works around CEF's per-frame memory leak. websockify rides in the
-# same venv — it bridges the browser's WebSocket to wayvnc's TCP :5900 for
-# the noVNC client.
+# powers the browser-source refresh — a supervisor program that respawns the
+# renderer of any browser source showing a blank frame, every five minutes —
+# and the healthcheck's scene check. websockify rides in the same venv — it
+# bridges the browser's WebSocket to wayvnc's TCP :5900 for the noVNC client.
 RUN python3 -m venv /opt/obs/venv \
     && /opt/obs/venv/bin/pip install --no-cache-dir obsws-python 'websockify==0.13.0' 'flask==3.1.0'
 
@@ -118,11 +118,10 @@ COPY supervisor/ /etc/supervisor/conf.d/
 
 COPY assets/twitch-overlay-left.png assets/twitch-overlay-right.png /opt/tripbot/assets/
 
-# License-clean car-interior drones — the YouTube scene's background audio,
-# cycled live by tripbot's !carsound command. Rendered at build time by the
-# `carhum` stage above (carhum/), not committed to git. The "Car Hum"
-# ffmpeg_source in Tripbot.json.tmpl points at one of these; SomaFM is stripped
-# on YouTube and a car-sound plays in its place.
+# License-clean car-interior drones, rendered at build time by the `carhum`
+# stage above (carhum/), not committed to git. The bed every platform falls back
+# to when the music share has no tracks, and the one tripbot's audio watchdog
+# swaps to when the playing bed goes silent; !carsound picks the voicing.
 COPY --from=carhum /opt/carhum/out/*.flac /opt/tripbot/assets/carhum/
 
 ARG VERSION=dev

@@ -23,9 +23,10 @@ processes:
 - **Display stack** — `sway` (headless Wayland compositor) + `wayvnc` + noVNC, so
   OBS's OpenGL composite hits the host iGPU (VAAPI encode) and the desktop is
   reachable in a browser.
-- **`supervisor`** manages OBS, sway, wayvnc, noVNC, the hourly browser-source
-  refresh (a workaround for CEF's per-frame memory leak), and a small Flask
-  `obs-server` exposing `/health/ready`, `/version`, and `POST /admin/shutdown`.
+- **`supervisor`** manages OBS, sway, wayvnc, noVNC, the five-minute
+  browser-source refresh (respawns the renderer of any browser source showing a
+  blank frame), and a small Flask `obs-server` exposing `/health/ready`,
+  `/version`, and `POST /admin/shutdown`.
 - **Scene/profile templates** (`config/`) rendered at startup from env vars.
 - **Background audio beds** — one `Background Audio` scene source, playing one of
   three beds: the SomaFM stream, a license-clean car-interior drone rendered at
@@ -46,7 +47,7 @@ processes:
 | `script/` | in-image startup scripts (sway, wayvnc, noVNC, obs-server) |
 | `scripts/` | repo tooling, not baked into the image (`check-changelog-fragment.sh`, the pre-push changelog guard) — note the near-identical name to `script/` above |
 | `supervisor/` | per-process supervisord configs |
-| `bin/` | `obs-browser-refresh`, `obs-media-restart`, `obs-input-repoint`, `obs-stream-key-rotate` (host/in-image Python helpers) |
+| `bin/` | `obs-browser-refresh`, `obs-scene-check` (both in the image), `obs-screenshot-check`, `obs-media-restart`, `obs-input-repoint`, `obs-stream-key-rotate` (Python helpers, obs-websocket) |
 | `carhum/` | car-hum FLAC generator (build-time only) |
 | `assets/` | Twitch overlay PNGs baked into the image |
 | `desktop-profiles/` | reference OBS Studio profiles for local desktop (macOS/Windows) |
@@ -70,7 +71,7 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 
 | Env var | Purpose |
 | --- | --- |
-| `STREAM_KEY` | Twitch/YouTube ingest key (per env + platform) |
+| `STREAM_KEY` | the platform's ingest key (per env + platform) |
 | `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, the default background-audio bed, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
 | `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `album` on every platform (falling back to `carhum` when the music share has no tracks). Only the *starting* bed — tripbot rewrites the source live |
 | `OBS_VERTICAL` | force portrait output (`true`/`false`); overrides the per-platform default so any platform can be tested vertical. Portrait renders a generated `Vertical` scene — `Main` rotated 90° CW into a 1080×1920 canvas |
