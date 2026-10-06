@@ -1,8 +1,8 @@
 # Changelog
 
 All notable changes to the adanalife OBS image are recorded here. The format is
-managed by [towncrier](https://towncrier.readthedocs.io): every PR into `develop`
-adds a fragment under `changelog.d/` (`task changelog:add PR=<n> TYPE=<type>`),
+managed by [towncrier](https://towncrier.readthedocs.io): every PR into `main`
+adds a fragment under `changelog.d/` (`task changelog:add TYPE=<type>`),
 and `task changelog:build VERSION=x.y.z` collates them into this file at release
 time.
 
