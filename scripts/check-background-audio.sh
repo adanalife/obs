@@ -55,7 +55,7 @@ scene=$work/somafm.json
 render_scene "$scene"
 set_background_audio somafm "$scene" >/dev/null
 [[ $(bg '.settings.is_local_file' "$scene") == false ]] || fail "somafm: is_local_file should be false"
-[[ $(bg '.settings.input' "$scene") == https://ice4.somafm.com/* ]] || fail "somafm: wrong input url"
+[[ $(bg '.settings.input' "$scene") == https://ice.somafm.com/* ]] || fail "somafm: input should be the round-robin ice.somafm.com host"
 [[ $(bg '.settings.reconnect_delay_sec' "$scene") == 10 ]] || fail "somafm: lost reconnect_delay_sec"
 
 # carhum — a local file that must LOOP; a drone that stops leaves dead air.

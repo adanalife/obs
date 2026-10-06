@@ -57,7 +57,9 @@ set_background_audio() {
   local bed="$1" scene_file="$2" settings volume
   case "$bed" in
     somafm)
-      settings='{"input":"https://ice4.somafm.com/gsclassic-128-mp3","is_local_file":false,"reconnect_delay_sec":10,"buffering_mb":8}'
+      # The round-robin host, the one tripbot writes on every bed switch: DNS
+      # hands out a healthy edge rather than pinning one that may be down.
+      settings='{"input":"https://ice.somafm.com/gsclassic-128-mp3","is_local_file":false,"reconnect_delay_sec":10,"buffering_mb":8}'
       volume=0.121619
       ;;
     album)
