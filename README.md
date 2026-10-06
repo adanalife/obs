@@ -45,7 +45,7 @@ processes:
 | `Dockerfile.arm64-base` | the arm64 CEF compile base → `ghcr.io/adanalife/obs-cef-base` |
 | `config/` | OBS scene + profile templates (`*.tmpl` rendered by `entrypoint.sh`) |
 | `script/` | in-image startup scripts (sway, wayvnc, noVNC, obs-server) |
-| `scripts/` | repo tooling, not baked into the image (`check-changelog-fragment.sh`, the pre-push changelog guard) — note the near-identical name to `script/` above |
+| `scripts/` | repo tooling, not baked into the image (`check-changelog-fragment.sh`, the pre-push changelog guard; `number-fragments.sh`, which numbers fragments at release) — note the near-identical name to `script/` above |
 | `supervisor/` | per-process supervisord configs |
 | `bin/` | `obs-browser-refresh`, `obs-scene-check` (both in the image), `obs-screenshot-check`, `obs-media-restart`, `obs-input-repoint`, `obs-stream-key-rotate` (Python helpers, obs-websocket) |
 | `carhum/` | car-hum FLAC generator (build-time only) |
@@ -102,13 +102,13 @@ other:
 Trunk-based `main` + [release-please](https://github.com/googleapis/release-please), with towncrier changelog fragments:
 
 1. Feature PRs target `main` (squash-merge, conventional title); each adds a
-   fragment (`task changelog:add TYPE=<type>` — no PR number needed, CI fills it
-   in on push) or carries the `skip-changelog` label.
+   fragment (`task changelog:add TYPE=<type>` — no PR number needed, the release
+   numbers it from the squash commit) or carries the `skip-changelog` label.
 2. `dev-image.yml` floats `ghcr.io/adanalife/obs:main` (amd64) on every main
    push — what stage deploys.
 3. `release-please.yml` maintains a standing release PR that bumps the version +
-   the prod pin (`cdk8s/versions.yaml`) from the conventional commits, collates
-   the `changelog.d/` fragments into `CHANGELOG.md`, and re-synths `cdk8s/dist/`
+   the prod pin (`cdk8s/versions.yaml`) from the conventional commits, numbers and
+   collates the `changelog.d/` fragments into `CHANGELOG.md`, and re-synths `cdk8s/dist/`
    on the PR branch.
 4. **To ship: squash-merge the release PR.** That tags `vX.Y.Z`, creates the
    GitHub Release, and the tag fires `release.yml` to build the multi-arch image
