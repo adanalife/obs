@@ -442,6 +442,46 @@ def test_a_source_whose_screenshot_errors_is_a_failure_not_a_skip():
     assert failed == ["left rotating"]
 
 
+def test_screenshot_dir_gets_one_png_per_source(monkeypatch, tmp_path):
+    # SCREENSHOT_DIR is the eyeballing path for a blank-overlay incident, so
+    # each file has to hold the bytes of the source it is named after. OBS
+    # allows "/" in a source name; written raw it would be a directory.
+    class _Slashed(_ShotClient):
+        def get_scene_item_list(self, scene):
+            items = super().get_scene_item_list(scene).scene_items
+            items.append(
+                {
+                    "sourceName": "Ticker/Bottom",
+                    "sceneItemTransform": {"sourceWidth": 1920, "sourceHeight": 80},
+                }
+            )
+            return _Reply(scene_items=items)
+
+    sizes = {
+        "Dashcam": 5001,
+        "Overlays": 5002,
+        "left rotating": 5003,
+        "right rotating": 5004,
+        "Ticker/Bottom": 5005,
+    }
+
+    class _Shot(_Connected):
+        scene = _Slashed(sizes)
+
+    dump = tmp_path / "shots"
+    _obsws(monkeypatch, _Shot)
+    monkeypatch.setenv("SCREENSHOT_DIR", str(dump))
+    assert screenshot_check.main() == 0
+    written = {p.name: p.stat().st_size for p in dump.iterdir()}
+    assert written == {
+        "Dashcam.png": 5001,
+        "Overlays.png": 5002,
+        "left rotating.png": 5003,
+        "right rotating.png": 5004,
+        "Ticker_Bottom.png": 5005,
+    }
+
+
 @pytest.mark.parametrize(
     "value,want",
     [

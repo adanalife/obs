@@ -102,11 +102,19 @@ def test_seamless_loop_trims_one_crossfade(tmp_path):
     # the first are neighbours in the source signal, so their step is bounded
     # by the largest step anywhere else in the file; a cut lands two unrelated
     # samples next to each other and clicks once per lap on the stream.
+    #
+    # The bound is the 99.9th-percentile step, not the largest: one click
+    # anywhere else in the file (a fade blended the wrong way round) raises the
+    # largest step to the size of a click, and the seam's click then passes
+    # under it. Correct loops across every shipped preset seam at under 0.55×
+    # this percentile; a cut seams at tens of times it.
     for channel in (samples[0::2], samples[1::2]):
-        step = max(abs(b - a) for a, b in zip(channel, channel[1:]))
-        assert abs(channel[0] - channel[-1]) <= step, (
-            f"the loop point steps {abs(channel[0] - channel[-1])} against a "
-            f"largest in-file step of {step} — the tail is not blended into the head"
+        steps = sorted(abs(b - a) for a, b in zip(channel, channel[1:]))
+        bound = steps[int(0.999 * (len(steps) - 1))]
+        seam = abs(channel[0] - channel[-1])
+        assert seam <= bound, (
+            f"the loop point steps {seam} against a 99.9th-percentile in-file "
+            f"step of {bound} — the tail is not blended into the head"
         )
 
 
