@@ -13,6 +13,22 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.16.1] — 2026-10-07
+
+### Fixed
+
+- A container that boots onto the SomaFM bed plays from the round-robin `ice.somafm.com` host, the same one tripbot writes on every bed switch, instead of the pinned `ice4` edge. ([#170](https://github.com/adanalife/obs/pull/170))
+
+### CI / Tooling
+
+- Test that a `--loop` car-hum render is continuous at the loop point, not merely one crossfade shorter — a plain truncation passed the length check. ([#168](https://github.com/adanalife/obs/pull/168))
+- Test `bin/obs-scene-check` the way the liveness probe runs it: an unreachable WebSocket exits 0 (unknown, not unhealthy), a wrong or empty scene exits 1. ([#168](https://github.com/adanalife/obs/pull/168))
+- Test which browser sources `bin/obs-browser-refresh` reloads and what the swap writes: only the blank ones, back to their own url, merging into the existing settings. The loop is lifted out of `main()` into `refresh_blank()` so a fake OBS client can drive it. ([#168](https://github.com/adanalife/obs/pull/168))
+- Test that `bin/obs-stream-key-rotate` never blocks reading a key from a terminal stdin. ([#168](https://github.com/adanalife/obs/pull/168))
+- Changelog fragments are numbered at release time from the squash commit that added them, so a PR no longer gets a CI rename commit pushed onto its branch and runs its checks once. ([#172](https://github.com/adanalife/obs/pull/172))
+- Test that `bin/obs-screenshot-check` with `SCREENSHOT_DIR` set writes one PNG per source holding that source's bytes, with a `/` in a source name written as `_`. ([#174](https://github.com/adanalife/obs/pull/174))
+- Bound the car-hum loop-point check by the 99.9th-percentile in-file step rather than the largest, so a render that also clicks mid-file no longer hides a clicking seam. ([#174](https://github.com/adanalife/obs/pull/174))
+
 ## [v2.16.0] — 2026-09-22
 
 ### Added

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 
 [[package]]
@@ -196,7 +196,7 @@ wheels = [
 
 [[package]]
 name = "obs-deploy"
-version = "2.16.0"
+version = "2.16.1"
 source = { virtual = "." }
 
 [package.dev-dependencies]
