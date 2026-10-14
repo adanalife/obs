@@ -10,6 +10,7 @@ on:
     paths:
       - 'cdk8s/**'
       - '.github/workflows/cdk8s-synth.yml'
+      - 'contract.json'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
