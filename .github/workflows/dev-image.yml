@@ -2,6 +2,8 @@
 # (imagePullPolicy: Always picks up rebuilds under the tag). amd64-only: prod and
 # stage both run OBS on the amd64 minipc, so the arm64 image is only built at
 # tagged releases (release.yml), not on every main push.
+# A failed build alerts Discord through the shared workflow's alert job, so
+# :main freezing on the previous commit does not go unnoticed.
 name: dev-image
 on:
   push:
@@ -26,3 +28,5 @@ jobs:
       build-args: |
         VERSION=main-${{ github.sha }}
         SHA=${{ github.sha }}
+    secrets:
+      DISCORD_WEBHOOK_ALERTS: ${{ secrets.DISCORD_WEBHOOK_ALERTS }}
