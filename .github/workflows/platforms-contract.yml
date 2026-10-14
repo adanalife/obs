@@ -31,6 +31,8 @@ jobs:
   platforms-contract:
     uses: adanalife/infra/.github/workflows/contract-sync.yml@main
     with:
+      # The deploy units read the synced contract, so the sync PR re-synths dist/.
+      cdk8s: true
       runs-on: ubuntu-latest
       platforms: true
       tripbot: contract.json
