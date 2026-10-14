@@ -209,32 +209,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/issuer: letsencrypt-route53
-    external-dns.alpha.kubernetes.io/hostname: obs-youtube.stage.whereisdana.today
-  name: obs-youtube
-  namespace: stage-1
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: obs-youtube.stage.whereisdana.today
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: obs-youtube
-                port:
-                  name: novnc
-  tls:
-    - hosts:
-        - obs-youtube.stage.whereisdana.today
-      secretName: obs-youtube-tls
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
     tailscale.com/proxy-group: ingress-proxies
   name: obs-youtube-ts
   namespace: stage-1
