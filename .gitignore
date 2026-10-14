@@ -1,6 +1,8 @@
 # Local env / secrets (never commit; runtime config comes from the k8s ConfigMap
 # + SM-backed secrets, see cdk8s/).
 *.env
+# Not a secret: super-linter's validator settings, loaded by the weekly sweep.
+!.github/super-linter.env
 secret.env
 .env.local
 

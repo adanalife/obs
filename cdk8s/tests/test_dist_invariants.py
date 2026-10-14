@@ -370,6 +370,20 @@ def _single_arch_image() -> str:
     workflow = yaml.safe_load(
         (REPO / ".github" / "workflows" / "dev-image.yml").read_text()
     )
+    # A job calling infra's shared image.yml builds linux/amd64 only and pushes
+    # ghcr.io/adanalife/<image>:<tag> for each of its `tags` (default `main`).
+    callers = [
+        job.get("with", {})
+        for job in workflow["jobs"].values()
+        if str(job.get("uses", "")).split("@")[0].endswith("/image.yml")
+    ]
+    if callers:
+        assert len(callers) == 1, (
+            f"dev-image.yml calls image.yml more than once: {callers}"
+        )
+        tags = str(callers[0].get("tags", "main")).split()
+        assert len(tags) == 1, f"dev-image.yml pushes several tags: {tags}"
+        return f"ghcr.io/adanalife/{callers[0]['image']}:{tags[0]}"
     builds = [
         step["with"]
         for job in workflow["jobs"].values()

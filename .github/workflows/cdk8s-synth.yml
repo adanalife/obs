@@ -1,17 +1,15 @@
-# Post-merge sweep verifying the committed cdk8s/dist/ deploy units are in sync with the
-# authoring code: re-synth and fail on any diff. Verify-only — the synth is
-# fast enough to run locally via `task cdk8s:synth`.
+# Post-merge sweep verifying the committed cdk8s/dist/ deploy units are in sync
+# with the authoring code. The PR-time check is a step of the `gates` job in
+# pr-gates.yml; this is the main-branch backstop, catching a desync that lands
+# some way other than a PR.
 name: cdk8s-synth
-#
-# The PR-time check is a step of the `gates` job in pr-gates.yml, guarded on the
-# PR's changed paths. This workflow is the main-branch backstop, catching a
-# desync that lands some way other than a PR.
 on:
   push:
     branches:
       - main
     paths:
       - 'cdk8s/**'
+      - '.github/workflows/cdk8s-synth.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,28 +20,4 @@ permissions:
 
 jobs:
   synth:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: jdx/mise-action@v4
-      - uses: astral-sh/setup-uv@v10.0.1 # no floating major tag published
-      - name: Synth
-        run: uv run --group cdk8s python cdk8s/main.py
-      - name: Verify dist/ is committed in sync
-        run: git diff --exit-code cdk8s/dist/
-
-      # Schema-validate the synthed *.k8s.yaml (what Argo applies) against the
-      # cluster's k8s API version — catches API-version drift after a k8s
-      # bump. CRD kinds resolve via the datree CRDs-catalog. dist/apps/*.json
-      # is excluded: it's metadata for infra's ApplicationSet git-files
-      # generator, not a k8s manifest.
-      # -kubernetes-version tracks the live cluster; bump it with talos upgrades.
-      - name: Validate manifests (kubeconform)
-        run: |
-          mise exec -- kubeconform -strict -summary \
-            -kubernetes-version 1.36.0 \
-            -schema-location default \
-            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
-            -ignore-missing-schemas \
-            cdk8s/dist/*.k8s.yaml
+    uses: adanalife/infra/.github/workflows/cdk8s.yml@main
