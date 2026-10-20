@@ -102,7 +102,7 @@ other:
 Trunk-based `main` + [release-please](https://github.com/googleapis/release-please), with towncrier changelog fragments:
 
 1. Feature PRs target `main` (squash-merge, conventional title); each adds a
-   fragment (`task changelog:add TYPE=<type>` — no PR number needed, the release
+   fragment (`task changelog:add TYPE=<type> MSG="…"` — no PR number needed, the release
    numbers it from the squash commit) or carries the `skip-changelog` label.
 2. `dev-image.yml` floats `ghcr.io/adanalife/obs:main` (amd64) on every main
    push — what stage deploys.
