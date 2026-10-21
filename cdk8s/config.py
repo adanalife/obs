@@ -65,9 +65,8 @@ class EnvConfig:
     # portrait LIVE is unstable at 60fps.
     obs_fps: dict[str, int] = dataclasses.field(default_factory=dict)
     obs_cpu_request: str = "200m"
-    # Which background-audio bed each platform's OBS *starts* on: somafm (the
-    # Groove Salad Classic stream), carhum (the image-baked license-clean drone),
-    # or album (the mounted music share). Platforms left out fall back to
+    # Which background-audio bed each platform's OBS *starts* on: carhum (the
+    # image-baked license-clean drone) or album (the mounted music share). Platforms left out fall back to
     # entrypoint.sh's own default, the album. The bed is live-switchable from
     # the console, so this only picks the starting point, not a policy.
     obs_background_audio: dict[str, str] = dataclasses.field(default_factory=dict)
@@ -203,7 +202,7 @@ ENVS: dict[str, EnvConfig] = {
 
 # The beds entrypoint.sh knows how to write onto the "Background Audio" source.
 # A value outside this set makes OBS exit 1 at boot, so it's caught at synth.
-BACKGROUND_AUDIO_BEDS = ("somafm", "carhum", "album")
+BACKGROUND_AUDIO_BEDS = ("carhum", "album")
 
 
 # Guard: an env can only run platforms the gateway has an adapter for.

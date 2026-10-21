@@ -29,9 +29,11 @@ processes:
   `/version`, and `POST /admin/shutdown`.
 - **Scene/profile templates** (`config/`) rendered at startup from env vars.
 - **Background audio beds** — one `Background Audio` scene source, playing one of
-  three beds: the SomaFM stream, a license-clean car-interior drone rendered at
-  build time (`carhum/`), or an album from the mounted music share. Selected at
-  startup by `OBS_BACKGROUND_AUDIO` and switchable live from the admin console.
+  three beds: a license-clean car-interior drone rendered at build time
+  (`carhum/`), an album from the mounted music share, or internet radio. The
+  starting bed (drone or album) is selected by `OBS_BACKGROUND_AUDIO`; tripbot
+  switches beds live from the admin console, and is the only way onto the radio
+  bed — it sets the station URL over the WebSocket.
   The source is audio-only in intent but OBS renders any video its file carries
   (album tracks embed cover art), so its scene item is parked off-canvas —
   hiding it would stop the audio too.
@@ -73,7 +75,7 @@ without them (the healthcheck only needs OBS + the Wayland session up):
 | --- | --- |
 | `STREAM_KEY` | the platform's ingest key (per env + platform) |
 | `STREAM_PLATFORM` | `twitch` (default), `youtube`, `facebook`, `tiktok`, or `instagram` — selects the ingest service, the default background-audio bed, and the canvas orientation (`tiktok`/`instagram` are portrait); see `entrypoint.sh` |
-| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `somafm`, `carhum`, or `album`. Unset → `album` on every platform (falling back to `carhum` when the music share has no tracks). Only the *starting* bed — tripbot rewrites the source live |
+| `OBS_BACKGROUND_AUDIO` | starting background-audio bed: `carhum` or `album`. Unset → `album` on every platform (falling back to `carhum` when the music share has no tracks). Only the *starting* bed — tripbot rewrites the source live |
 | `OBS_VERTICAL` | force portrait output (`true`/`false`); overrides the per-platform default so any platform can be tested vertical. Portrait renders a generated `Vertical` scene — `Main` rotated 90° CW into a 1080×1920 canvas |
 | `OBS_WEBSOCKET_PASSWD` | obs-websocket auth (tripbot's watchdog connects with it) |
 | `OBS_QUALITY_PRESET` | encoder quality preset (`low` on stage) |

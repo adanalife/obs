@@ -3,14 +3,8 @@
 # directly by scripts/check-background-audio.sh).
 #
 # The scene ships ONE "Background Audio" ffmpeg_source and this writes the
-# chosen bed's settings onto it. Three beds exist:
+# chosen starting bed's settings onto it. Two beds can start a stream:
 #
-#   - somafm — the "Groove Salad Classic" internet-radio stream. Its music is
-#     NOT cleared for our rebroadcast: it reliably trips YouTube's Content ID
-#     and earns copyright strikes there, and Meta's Rights Manager and TikTok's
-#     / Instagram's audio ID are just as strike-happy. Twitch hasn't struck it
-#     so far, but that's empirical tolerance, not a license, and could draw a
-#     DMCA claim at any time.
 #   - carhum — a locally-generated, license-clean drone (see carhum/), baked
 #     into the image. The safe bed everywhere else, and what the audio watchdog
 #     falls back to when the playing bed goes silent.
@@ -18,9 +12,10 @@
 #     `obs-music-local` PVC (the infra repo owns the volume). tripbot shuffles
 #     and advances tracks over the WebSocket once it connects.
 #
-# Only the STARTING bed is chosen here. Any bed can play on any platform, and
-# the choice is live-switchable from the admin console (tripbot rewrites this
-# same source's settings over the OBS WebSocket) — a default, not a policy.
+# Only the STARTING bed is chosen here. The choice is live-switchable from the
+# admin console (tripbot rewrites this same source's settings over the OBS
+# WebSocket), and that is also the only way onto the internet-radio bed: its
+# station URLs live in tripbot's private config, never in this image.
 
 # The OBS source name. Cross-repo contract with tripbot's
 # BackgroundAudioInputName; must match the source "name" in Tripbot.json.tmpl.
@@ -49,19 +44,11 @@ random_album_track() {
 
 # set_background_audio <bed> <scene-file>
 #
-# Each bed needs a different source shape (a network stream buffers and
-# reconnects; a local file loops) and a different level — SomaFM's 128k mix is
-# mastered far hotter than the carhum drone, so one shared volume would leave
-# whichever bed it wasn't tuned for wrong.
+# Each bed needs a different source shape (the drone loops; an album track ends
+# so tripbot can advance it).
 set_background_audio() {
   local bed="$1" scene_file="$2" settings volume
   case "$bed" in
-    somafm)
-      # The round-robin host, the one tripbot writes on every bed switch: DNS
-      # hands out a healthy edge rather than pinning one that may be down.
-      settings='{"input":"https://ice.somafm.com/gsclassic-128-mp3","is_local_file":false,"reconnect_delay_sec":10,"buffering_mb":8}'
-      volume=0.121619
-      ;;
     album)
       local track
       track=$(random_album_track)
@@ -85,7 +72,7 @@ set_background_audio() {
       volume=0.2
       ;;
     *)
-      echo "unknown background audio bed '$bed' (want somafm|carhum|album)" >&2
+      echo "unknown background audio bed '$bed' (want carhum|album)" >&2
       return 1
       ;;
   esac
@@ -103,10 +90,7 @@ set_background_audio() {
 # Where every platform starts when OBS_BACKGROUND_AUDIO is unset: the licensed
 # album, which survives every platform's audio ID the way the drone does, and a
 # slow-tv stream carrying music reads as a channel rather than as something
-# broken. SomaFM stays selectable — from the console, from !somafm, and through
-# OBS_BACKGROUND_AUDIO — but it is nobody's default: its edges have refused our
-# IP, so a boot that starts there starts on a bed that may never play. The drone
-# is still the safety net rather than a default — set_background_audio falls
+# broken. The drone is the safety net rather than a default — set_background_audio falls
 # back to it when the share has no tracks, which is how the envs without the
 # music PVC (development, local) boot.
 default_background_audio() {

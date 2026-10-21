@@ -43,9 +43,9 @@ done
 # Identical audio, deliberately distinct path. The OBS background-audio source
 # records only what file it is playing, so that path is the only place able to
 # distinguish "an operator selected Car Hum" from "the audio watchdog fell back
-# to it during a SomaFM outage". Without the distinction a tripbot restart
+# to it during a radio outage". Without the distinction a tripbot restart
 # mid-outage reads the fallback back as a chosen Car Hum bed and never returns
-# to SomaFM. A copy rather than a symlink because the COPY out of this stage
+# to the radio. A copy rather than a symlink because the COPY out of this stage
 # globs files, and a dangling link in the final image is silence.
 cp "$out/car-hum-idle.flac" "$out/car-hum-fallback.flac"
 echo "   -> $out/car-hum-fallback.flac (copy of idle)"
