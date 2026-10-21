@@ -77,7 +77,7 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
 # and the healthcheck's scene check. websockify rides in the same venv — it
 # bridges the browser's WebSocket to wayvnc's TCP :5900 for the noVNC client.
 RUN python3 -m venv /opt/obs/venv \
-    && /opt/obs/venv/bin/pip install --no-cache-dir obsws-python 'websockify==0.13.0' 'flask==3.1.0'
+    && /opt/obs/venv/bin/pip install --no-cache-dir 'obsws-python==1.8.0' 'websockify==0.13.0' 'flask==3.1.3'
 
 # noVNC: the static browser VNC client websockify serves on :6080. Reached
 # through the obs Ingress (traefik), so VNC works in a browser with no
