@@ -168,3 +168,32 @@ def test_a_file_backed_browser_source_is_skipped_before_the_screenshot():
 def test_no_browser_sources_means_nothing_checked():
     client = _Client(inputs=[("Dashcam", "ffmpeg_source")], urls={}, frames={})
     assert refresh.refresh_blank(client, sleep=client.sleep) == (0, 0)
+
+
+def test_a_source_stranded_on_about_blank_is_reported_not_swapped(capsys):
+    # Swapping it would screenshot blank and "restore" about:blank, every
+    # cycle, while reading as a successful reload.
+    client = _Client(
+        inputs=[("left rotating", "browser_source")],
+        urls={"left rotating": refresh.BLANK_URL},
+        frames={"left rotating": BLANK},
+    )
+    assert refresh.refresh_blank(client, sleep=client.sleep) == (1, 0)
+    assert client.calls == []
+    assert "stranded" in capsys.readouterr().err
+
+
+def test_an_interrupted_gap_still_restores_the_url():
+    client = _scene()
+
+    def interrupted(seconds):
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        refresh.refresh_blank(client, sleep=interrupted)
+    assert [c for c in client.calls if c[0] == "write"][-1] == (
+        "write",
+        "right rotating",
+        {"url": "http://onscreens/right"},
+        True,
+    )
