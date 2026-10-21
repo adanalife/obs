@@ -49,15 +49,6 @@ item() { jq -r --arg n "$BACKGROUND_AUDIO_INPUT" \
 (( $(item '.pos.x' "$scene") > 1920 && $(item '.pos.y' "$scene") > 1920 )) ||
   fail "background audio item is on-canvas — its cover art will render on the stream"
 
-# somafm — a network stream: no local file, and it must keep the reconnect
-# settings that let it ride out a SomaFM edge blip.
-scene=$work/somafm.json
-render_scene "$scene"
-set_background_audio somafm "$scene" >/dev/null
-[[ $(bg '.settings.is_local_file' "$scene") == false ]] || fail "somafm: is_local_file should be false"
-[[ $(bg '.settings.input' "$scene") == https://ice.somafm.com/* ]] || fail "somafm: input should be the round-robin ice.somafm.com host"
-[[ $(bg '.settings.reconnect_delay_sec' "$scene") == 10 ]] || fail "somafm: lost reconnect_delay_sec"
-
 # carhum — a local file that must LOOP; a drone that stops leaves dead air.
 scene=$work/carhum.json
 render_scene "$scene"
@@ -99,6 +90,14 @@ MUSIC_DIR=$work/nonexistent set_background_audio album "$scene" 2>/dev/null >/de
 [[ $(bg '.settings.looping' "$scene") == true ]] || fail "empty share: should fall back to carhum"
 [[ $(bg '.settings.local_file' "$scene") == *car-hum* ]] || fail "empty share: should fall back to carhum"
 
+# The radio bed is tripbot's to set at runtime — its station URLs are not in
+# this repo — so it can't be a starting bed.
+scene=$work/radio.json
+render_scene "$scene"
+if set_background_audio radio "$scene" 2>/dev/null; then
+  fail "radio is not a starting bed"
+fi
+
 # An unknown bed must fail loudly at boot, not silently leave the source blank.
 scene=$work/bogus.json
 render_scene "$scene"
@@ -106,8 +105,7 @@ if set_background_audio wurlitzer "$scene" 2>/dev/null; then
   fail "unknown bed should be rejected"
 fi
 
-# The starting bed. No platform defaults to SomaFM: it stays selectable, but a
-# boot that starts there starts on a bed its edges may refuse to serve us.
+# The starting bed every platform gets when OBS_BACKGROUND_AUDIO is unset.
 [[ $(default_background_audio) == album ]] || fail "the default bed should be the album"
 
 echo "background-audio: all beds OK"
