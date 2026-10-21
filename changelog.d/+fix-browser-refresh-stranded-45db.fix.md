@@ -1,1 +1,0 @@
-The browser-source refresh reports a source left on about:blank by an interrupted reload instead of re-swapping it to about:blank every cycle, and an interrupted reload gap still restores the source's url.

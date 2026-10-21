@@ -13,6 +13,36 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.16.1] — 2026-10-21
+
+### Removed
+
+- `OBS_BACKGROUND_AUDIO` accepts `carhum` or `album`; the hardcoded internet-radio starting bed is gone from the image. Internet radio is tripbot's to tune live over the WebSocket, with its station URLs kept in private config. ([#184](https://github.com/adanalife/obs/pull/184))
+
+### Fixed
+
+- A container that boots onto the SomaFM bed plays from the round-robin `ice.somafm.com` host, the same one tripbot writes on every bed switch, instead of the pinned `ice4` edge. ([#170](https://github.com/adanalife/obs/pull/170))
+- The browser-source refresh reports a source left on about:blank by an interrupted reload instead of re-swapping it to about:blank every cycle, and an interrupted reload gap still restores the source's url. ([#185](https://github.com/adanalife/obs/pull/185))
+- The starting album track can be an Ogg Opus (`.opus`) file, alongside mp3, flac, m4a and ogg. ([#188](https://github.com/adanalife/obs/pull/188))
+
+### Security
+
+- The image pins obsws-python (1.8.0, what it already shipped) and moves Flask from 3.1.0 to 3.1.3, past 3.1.1's session-signing key fallback fix and onto the version the tests run. ([#187](https://github.com/adanalife/obs/pull/187))
+
+### CI / Tooling
+
+- Test that a `--loop` car-hum render is continuous at the loop point, not merely one crossfade shorter — a plain truncation passed the length check. ([#168](https://github.com/adanalife/obs/pull/168))
+- Test `bin/obs-scene-check` the way the liveness probe runs it: an unreachable WebSocket exits 0 (unknown, not unhealthy), a wrong or empty scene exits 1. ([#168](https://github.com/adanalife/obs/pull/168))
+- Test which browser sources `bin/obs-browser-refresh` reloads and what the swap writes: only the blank ones, back to their own url, merging into the existing settings. The loop is lifted out of `main()` into `refresh_blank()` so a fake OBS client can drive it. ([#168](https://github.com/adanalife/obs/pull/168))
+- Test that `bin/obs-stream-key-rotate` never blocks reading a key from a terminal stdin. ([#168](https://github.com/adanalife/obs/pull/168))
+- Changelog fragments are numbered at release time from the squash commit that added them, so a PR no longer gets a CI rename commit pushed onto its branch and runs its checks once. ([#172](https://github.com/adanalife/obs/pull/172))
+- Test that `bin/obs-screenshot-check` with `SCREENSHOT_DIR` set writes one PNG per source holding that source's bytes, with a `/` in a source name written as `_`. ([#174](https://github.com/adanalife/obs/pull/174))
+- Bound the car-hum loop-point check by the 99.9th-percentile in-file step rather than the largest, so a render that also clicks mid-file no longer hides a clicking seam. ([#174](https://github.com/adanalife/obs/pull/174))
+- CI workflows call the org's shared reusable workflows (adanalife/infra) — the per-PR gates, pre-commit, release-please, the weekly super-linter sweep and the cdk8s sweep — instead of carrying their own copies. ([#176](https://github.com/adanalife/obs/pull/176))
+- The per-PR gates run with a read-only token instead of the repository's default one, and the weekly lint sweep keeps ruff's pre-0.16 rule set. ([#177](https://github.com/adanalife/obs/pull/177))
+- `task changelog:add` takes the entry as a required `MSG="…"` and writes the fragment whole, rather than opening an editor or leaving towncrier's placeholder to fill in. ([#181](https://github.com/adanalife/obs/pull/181))
+- Run the changelog fragment-numbering self-test on every PR, so a break shows up in review rather than on the next release PR. ([#182](https://github.com/adanalife/obs/pull/182))
+
 ## [v2.16.0] — 2026-09-22
 
 ### Added
