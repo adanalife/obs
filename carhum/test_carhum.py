@@ -1,6 +1,6 @@
 """Synthesis smoke test for carhum.py.
 
-The car-hum bed is what the audio watchdog swaps to when SomaFM drops, so a
+The car-hum bed is what the audio watchdog swaps to when the radio bed drops, so a
 synthesis regression surfaces as the fallback sounding wrong on the live
 stream — or as silence. Nothing else in CI runs this code: the image build
 renders the variants, but a render that produced two minutes of digital

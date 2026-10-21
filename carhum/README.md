@@ -5,9 +5,9 @@ hum + cabin air) entirely from filtered noise and a few low sine harmonics. It's
 100% synthesized, so it carries **no licensing risk** — unlike a ripped
 recording, it can't earn a YouTube Content ID claim or copyright strike.
 
-It's the source of the "Car Hum" background-audio bed the OBS **YouTube**
-scene plays in place of the SomaFM source (which is stripped on YouTube — see
-`entrypoint.sh`). Nothing is committed to git: `render-variants.sh` renders
+It's the source of the "Car Hum" background-audio bed — the license-clean
+alternative to the radio bed, and the audio watchdog's fallback (see
+`script/background-audio.sh`). Nothing is committed to git: `render-variants.sh` renders
 four seamless-looping variant FLACs (`idle`, `highway`, `backroad`,
 `mountain`) at Docker **build time** into `/opt/tripbot/assets/carhum/`. Which
 one plays is the drone bed's *voicing*, selectable from the console.
