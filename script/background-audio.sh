@@ -38,7 +38,7 @@ CARHUM_BED="${CARHUM_BED:-/opt/tripbot/assets/carhum/car-hum-idle.flac}"
 # makes find exit non-zero — an empty result is a valid answer, not a failure.
 random_album_track() {
   find "$MUSIC_DIR" -mindepth 2 -type f \
-    \( -name '*.mp3' -o -name '*.flac' -o -name '*.m4a' -o -name '*.ogg' \) 2>/dev/null |
+    \( -name '*.mp3' -o -name '*.flac' -o -name '*.m4a' -o -name '*.ogg' -o -name '*.opus' \) 2>/dev/null |
     shuf -n1 || true
 }
 
