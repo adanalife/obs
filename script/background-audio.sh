@@ -15,7 +15,7 @@
 # Only the STARTING bed is chosen here. The choice is live-switchable from the
 # admin console (tripbot rewrites this same source's settings over the OBS
 # WebSocket), and that is also the only way onto the internet-radio bed: its
-# station URLs live in tripbot's private config, never in this image.
+# station URLs live in tripbot's config.
 
 # The OBS source name. Cross-repo contract with tripbot's
 # BackgroundAudioInputName; must match the source "name" in Tripbot.json.tmpl.

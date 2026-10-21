@@ -1,1 +1,1 @@
-`OBS_BACKGROUND_AUDIO` accepts `carhum` or `album`; the hardcoded internet-radio starting bed is gone from the image. Internet radio is tripbot's to tune live over the WebSocket, with its station URLs kept in private config.
+`OBS_BACKGROUND_AUDIO` accepts `carhum` or `album`; the hardcoded internet-radio starting bed is gone from the image. Internet radio is tripbot's to tune live over the WebSocket, with its station URLs in tripbot's config.
