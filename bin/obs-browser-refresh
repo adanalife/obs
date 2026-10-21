@@ -83,12 +83,24 @@ def refresh_blank(client, sleep=time.sleep):
         url = client.get_input_settings(name).input_settings.get("url")
         if not url:
             continue
+        if url == BLANK_URL:
+            # A swap whose restore never landed (a dropped websocket, a
+            # timeout) left the source here, and its own url is gone with it:
+            # swapping again would only restore about:blank. Only a pod
+            # restart, which re-renders the collection, brings it back.
+            print(
+                f"Browser source stranded on {BLANK_URL}, needs a restart: {name}",
+                file=sys.stderr,
+            )
+            continue
         shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
         if not is_blank(decode_screenshot(shot.image_data)):
             continue
         client.set_input_settings(name, {"url": BLANK_URL}, True)
-        sleep(RELOAD_GAP_S)
-        client.set_input_settings(name, {"url": url}, True)
+        try:
+            sleep(RELOAD_GAP_S)
+        finally:
+            client.set_input_settings(name, {"url": url}, True)
         reloaded += 1
         print(f"Reloaded blank source: {name}")
     return len(sources), reloaded
