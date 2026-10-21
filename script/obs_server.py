@@ -36,9 +36,9 @@ SHA_FILE = Path("/etc/tripbot/sha")
 # Matches the Go services' shutdownDelay.
 SHUTDOWN_DELAY_SECONDS = 0.5
 
-# Supervisord runs as PID 1. SIGTERMing PID 1 brings down all the
-# supervised programs cleanly and the container exits, which k8s
-# restartPolicy: Always then respawns.
+# PID 1 is tini, which forwards the SIGTERM to supervisord (the entrypoint
+# execs it); that brings down all the supervised programs cleanly and the
+# container exits, which k8s restartPolicy: Always then respawns.
 SUPERVISORD_PID = 1
 
 app = Flask(__name__)

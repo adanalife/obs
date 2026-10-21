@@ -102,8 +102,8 @@ def test_shutdown_answers_before_it_signals(client, monkeypatch):
     deadline = time.monotonic() + 5
     while not signalled and time.monotonic() < deadline:
         time.sleep(0.01)
-    # Supervisord is PID 1; SIGTERMing it is what takes the container down and
-    # lets k8s respawn the pod.
+    # PID 1 is tini, which hands the SIGTERM to supervisord; that is what takes
+    # the container down and lets k8s respawn the pod.
     assert signalled == [(obs_server.SUPERVISORD_PID, signal.SIGTERM)]
 
 

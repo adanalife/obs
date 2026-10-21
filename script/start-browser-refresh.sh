@@ -8,9 +8,8 @@
 # onscreens-server was up. Sources with content on them are left alone.
 #
 # Connects via obs-websocket on localhost:4455, so it depends on OBS being
-# up and listening. supervisor's autorestart handles the case where this
-# script starts before OBS is ready (it'll just fail fast on the first
-# attempt and retry).
+# up and listening. A cycle that can't reach it (OBS not up yet, or
+# restarting) logs and waits for the next one; the loop itself never exits.
 set -euo pipefail
 
 # The first check waits for OBS and the overlays to come up, so a page still
