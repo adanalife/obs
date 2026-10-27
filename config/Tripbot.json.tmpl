@@ -266,6 +266,31 @@
       "deinterlace_field_order": 0,
       "deinterlace_mode": 0,
       "enabled": true,
+      "filters": [
+        {
+          "enabled": true,
+          "id": "compressor_filter",
+          "name": "Bed Compressor",
+          "settings": {
+            "ratio": 2.0,
+            "threshold": -18.0,
+            "attack_time": 20,
+            "release_time": 250,
+            "output_gain": 0.0
+          },
+          "versioned_id": "compressor_filter"
+        },
+        {
+          "enabled": true,
+          "id": "limiter_filter",
+          "name": "Bed Limiter",
+          "settings": {
+            "threshold": -3.0,
+            "release_time": 60
+          },
+          "versioned_id": "limiter_filter"
+        }
+      ],
       "flags": 0,
       "hotkeys": {},
       "id": "ffmpeg_source",
