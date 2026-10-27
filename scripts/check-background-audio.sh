@@ -70,6 +70,11 @@ MUSIC_DIR=$work/music set_background_audio album "$scene" >/dev/null
 [[ $(bg '.settings.looping' "$scene") == false ]] || fail "album: must not loop (blocks track advance)"
 [[ $(bg '.settings.local_file' "$scene") == "$work/music/fifty-horizons/001 Maine - Atlantic Dawn.mp3" ]] ||
   fail "album: wrong track (paths with spaces must survive)"
+# Every bed plays through the compressor, then the limiter: writing a bed must
+# keep the chain, and the limiter has to come last to catch what the
+# compressor lets through.
+[[ $(bg '[.filters[].id] | join(",")' "$scene") == compressor_filter,limiter_filter ]] ||
+  fail "album: the bed must keep its compressor -> limiter chain"
 
 # Loose files at the share root are not tracks. The real share keeps a 556MB
 # carsounds.m4a next to the album directories; picking it would put a
