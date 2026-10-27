@@ -138,9 +138,9 @@ COPY supervisor/ /etc/supervisor/conf.d/
 COPY assets/twitch-overlay-left.png assets/twitch-overlay-right.png /opt/tripbot/assets/
 
 # License-clean car-interior drones, rendered at build time by the `carhum`
-# stage above (carhum/), not committed to git. The bed every platform falls back
-# to when the music share has no tracks, and the one tripbot's audio watchdog
-# swaps to when the playing bed goes silent; !carsound picks the voicing.
+# stage above (carhum/), not committed to git. The starting bed when the music
+# share has no tracks, and tripbot's radio-outage fallback when the share holds
+# none of its fallback albums; !carsound picks the voicing.
 COPY --from=carhum /opt/carhum/out/*.flac /opt/tripbot/assets/carhum/
 
 ARG VERSION=dev

@@ -28,7 +28,7 @@ import sys
 
 
 def mask(key):
-    """Render enough of a key to recognise it, never enough to use it."""
+    """Render enough of a key to recognize it, never enough to use it."""
     if not key:
         return "(empty)"
     return f"{key[:4]}… ({len(key)} chars)" if len(key) > 8 else f"… ({len(key)} chars)"

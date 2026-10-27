@@ -99,7 +99,7 @@ def test_seamless_loop_trims_one_crossfade(tmp_path):
 
     # The length alone is satisfied by a plain truncation, which is the very
     # seam this mode exists to remove. In a correct loop the last sample and
-    # the first are neighbours in the source signal, so their step is bounded
+    # the first are neighbors in the source signal, so their step is bounded
     # by the largest step anywhere else in the file; a cut lands two unrelated
     # samples next to each other and clicks once per lap on the stream.
     #

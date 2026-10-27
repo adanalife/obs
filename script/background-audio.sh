@@ -6,8 +6,9 @@
 # chosen starting bed's settings onto it. Two beds can start a stream:
 #
 #   - carhum — a locally-generated, license-clean drone (see carhum/), baked
-#     into the image. The safe bed everywhere else, and what the audio watchdog
-#     falls back to when the playing bed goes silent.
+#     into the image. The safe bed everywhere else, and what tripbot's audio
+#     watchdog rides a radio outage on when the share holds none of its
+#     fallback albums.
 #   - album — a licensed album on the read-only music share, mounted from the
 #     `obs-music-local` PVC (the infra repo owns the volume). tripbot shuffles
 #     and advances tracks over the WebSocket once it connects.
@@ -30,9 +31,9 @@ CARHUM_BED="${CARHUM_BED:-/opt/tripbot/assets/carhum/car-hum-idle.flac}"
 # "track". -mindepth 2 is the whole rule.
 #
 # Any track under any album is a valid answer, because this only decides which
-# album the stream boots into: tripbot reads the playing file back off the source
-# on connect, takes the album from its path, and builds the play order from that
-# album alone. Picking across the whole share can't interleave albums.
+# track the stream boots into: tripbot reads the playing file back off the source
+# on connect and builds its own shuffled play order over its fallback albums,
+# picking up from this track when it is one of them.
 #
 # `|| true` because callers run under `set -euo pipefail` and an unmounted share
 # makes find exit non-zero — an empty result is a valid answer, not a failure.
