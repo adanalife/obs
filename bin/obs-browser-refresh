@@ -38,7 +38,7 @@ BLANK_URL = "about:blank"
 
 
 def is_blank(bmp: bytes) -> bool:
-    """True when every pixel in a BMP is the same colour.
+    """True when every pixel in a BMP is the same color.
 
     Reads the pixel-array offset and bits-per-pixel from the header and
     compares pixels as fixed-width byte groups, so it holds for the 24- and

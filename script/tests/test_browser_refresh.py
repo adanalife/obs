@@ -53,7 +53,7 @@ def test_one_lit_pixel_is_not_blank(bpp):
 
 
 def test_uniform_nonblack_frame_is_blank():
-    # Blank means uniform, not black: a solid colour frame is still a dead page.
+    # Blank means uniform, not black: a solid color frame is still a dead page.
     px = b"\x10\x20\x30\xff"
     assert refresh.is_blank(bmp([px] * 4, width=2, bpp=32))
 
