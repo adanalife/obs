@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.17.0] — 2026-10-28
+
+### Added
+
+- The `Background Audio` bed now plays through a gentle compressor (2:1 above -18 dB) and a -3 dB limiter, so third-party stations and albums mastered at different levels sit more evenly under the stream and never clip. ([#192](https://github.com/adanalife/obs/pull/192))
+
 ## [v2.16.1] — 2026-10-21
 
 ### Removed

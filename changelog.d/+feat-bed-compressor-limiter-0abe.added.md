@@ -1,1 +1,0 @@
-The `Background Audio` bed now plays through a gentle compressor (2:1 above -18 dB) and a -3 dB limiter, so third-party stations and albums mastered at different levels sit more evenly under the stream and never clip.
