@@ -1,4 +1,4 @@
-"""Tests for obs-server, the HTTP shim that lets the admin panel treat OBS
+"""Tests for obs-server, the HTTP shim that lets the console treat OBS
 like its sibling Go services.
 
 The point of most of them is `/version`: its four keys are a cross-repo
@@ -8,8 +8,6 @@ console silently.
 
 from __future__ import annotations
 
-import os
-import signal
 import time
 
 import pytest
@@ -82,38 +80,3 @@ def test_a_blank_version_file_reads_as_the_default(version_files, contents):
     version.write_text(contents)
 
     assert obs_server._read_or_default(version, "dev") == "dev"
-
-
-def test_shutdown_answers_before_it_signals(client, monkeypatch):
-    """The ordering the endpoint's docstring explains at length: the 202 has to
-    reach the admin panel before the container starts dying, or the panel sees
-    a dropped connection instead of an acknowledged restart."""
-    signalled = []
-    monkeypatch.setattr(os, "kill", lambda pid, sig: signalled.append((pid, sig)))
-    monkeypatch.setattr(obs_server, "SHUTDOWN_DELAY_SECONDS", 0.05)
-
-    resp = client.post("/admin/shutdown")
-
-    assert resp.status_code == 202
-    assert resp.get_data(as_text=True) == "shutting down\n"
-    # Still nothing signalled at the moment the response is in hand.
-    assert signalled == []
-
-    deadline = time.monotonic() + 5
-    while not signalled and time.monotonic() < deadline:
-        time.sleep(0.01)
-    # PID 1 is tini, which hands the SIGTERM to supervisord; that is what takes
-    # the container down and lets k8s respawn the pod.
-    assert signalled == [(obs_server.SUPERVISORD_PID, signal.SIGTERM)]
-
-
-def test_shutdown_survives_a_supervisord_that_is_already_gone(monkeypatch):
-    """The timer thread has no caller left to raise into, so a failed kill must
-    be logged and swallowed rather than dying in the background."""
-
-    def boom(pid, sig):
-        raise ProcessLookupError("no such process")
-
-    monkeypatch.setattr(os, "kill", boom)
-
-    obs_server._fire_shutdown()  # must not raise

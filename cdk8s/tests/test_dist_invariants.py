@@ -123,18 +123,17 @@ def test_there_are_manifests_to_check():
 def test_ingresses_publish_only_novnc(manifest: Path):
     """No Ingress may reach anything but noVNC — obs-server especially.
 
-    obs-server serves `POST /admin/shutdown`, which SIGTERMs supervisord and so
-    restarts the container feeding the live stream. It is unauthenticated, because
-    it is reached in-namespace by the console's Service. Pointing an Ingress at it
-    — by switching a port name, or by numbering the wrong port — would publish a
-    "stop the stream" button on a public hostname, and the change would read as a
-    one-word diff. noVNC is behind the same Ingress class but is the surface the
-    Ingress exists for.
+    obs-server is unauthenticated, because it is reached in-namespace by the
+    console's Service; it is an internal surface, and any route added to it
+    later inherits that assumption. Pointing an Ingress at it — by switching a
+    port name, or by numbering the wrong port — would publish it on a public
+    hostname, and the change would read as a one-word diff. noVNC is behind the
+    same Ingress class but is the surface the Ingress exists for.
     """
     for ing_name, port in _backend_ports(_docs(manifest)):
         assert port != OBS_SERVER_PORT, (
-            f"{ing_name} publishes obs-server ({port}) — that exposes "
-            "POST /admin/shutdown, which restarts the streaming container"
+            f"{ing_name} publishes obs-server ({port}), an unauthenticated "
+            "in-namespace surface"
         )
         assert port == NOVNC_PORT, (
             f"{ing_name} publishes port {port}; only noVNC ({NOVNC_PORT}) "

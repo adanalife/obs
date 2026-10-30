@@ -25,8 +25,8 @@ processes:
   reachable in a browser.
 - **`supervisor`** manages OBS, sway, wayvnc, noVNC, the five-minute
   browser-source refresh (respawns the renderer of any browser source showing a
-  blank frame), and a small Flask `obs-server` exposing `/health/ready`,
-  `/version`, and `POST /admin/shutdown`.
+  blank frame), and a small Flask `obs-server` exposing `/health/ready`
+  and `/version`.
 - **Scene/profile templates** (`config/`) rendered at startup from env vars.
 - **Background audio beds** — one `Background Audio` scene source, playing one of
   three beds: a license-clean car-interior drone rendered at build time
