@@ -51,8 +51,7 @@ class EnvConfig:
     # Platforms whose stream-key ExternalSecret is emitted (the live streamer).
     obs_streaming: tuple[str, ...] = ()
 
-    gpu: bool = False  # node has the Intel iGPU (request gpu.intel.com/i915)
-    obs_gpu: bool = True  # OBS claims the iGPU (gated on gpu and obs_gpu)
+    gpu: bool = False  # node has the Intel iGPU; OBS claims it (gpu.intel.com/i915)
     obs_encoder: str = "obs_x264"  # ffmpeg_vaapi_tex on GPU envs
     obs_quality: str = "low"  # low | high
     # Per-platform video bitrate override, kbps ({} = the preset's value,
@@ -76,9 +75,6 @@ class EnvConfig:
     # album anyway.
     music_share: bool = False
     priority_class: str = ""  # prod-stream on prod; "" elsewhere
-    prefer_rpi5: bool = (
-        False  # bias to the rpi5 worker (only when OBS is software-encoded)
-    )
     tailscale: bool = False  # emit the tailscale Ingress alongside the traefik one
 
     def tag_for(self, component: str) -> str:
@@ -123,7 +119,6 @@ ENVS: dict[str, EnvConfig] = {
         platforms=SUPPORTED_PLATFORMS,
         obs_streaming=("twitch", "youtube", "facebook", "tiktok"),
         gpu=True,
-        obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         obs_quality="high",
         # tiktok runs the high preset's 1080p at 30fps and 4000 kbps. TikTok
@@ -157,7 +152,6 @@ ENVS: dict[str, EnvConfig] = {
         platforms=SUPPORTED_PLATFORMS,
         obs_streaming=("facebook", "tiktok"),
         gpu=True,
-        obs_gpu=True,
         obs_encoder="ffmpeg_vaapi_tex",
         # 720p30 so a rehearsal scale-up here never costs prod's live encoders
         # an iGPU slot — the minipc's budget is two.
@@ -168,7 +162,6 @@ ENVS: dict[str, EnvConfig] = {
         },  # known-good; 6000 plays back black on TikTok — see prod note
         obs_cpu_request="200m",
         music_share=True,
-        prefer_rpi5=True,
         tailscale=True,
     ),
     "development": EnvConfig(

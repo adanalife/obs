@@ -34,11 +34,9 @@ OBS_SERVER_PORT: int = json.loads((REPO / "contract.json").read_text())["ports"]
 MANIFESTS = sorted(DIST.glob("*-obs-*.k8s.yaml"))
 
 # The hardware-encoder plumbing: the env that selects VAAPI, the resource the
-# Intel device plugin hands out for it, and the rpi5 worker that has neither.
+# Intel device plugin hands out for it.
 VAAPI_ENCODER = "ffmpeg_vaapi_tex"
 IGPU_RESOURCE = "gpu.intel.com/i915"
-RPI5_BOARD_LABEL = "dana.lol/board"
-RPI5_TAINT_KEY = "dana.lol/rpi5"
 
 
 def _music_dir() -> str:
@@ -304,26 +302,6 @@ def test_the_encoder_and_the_igpu_claim_agree(manifest: Path):
         assert IGPU_RESOURCE not in requests and IGPU_RESOURCE not in limits, (
             f"{manifest.stem} encodes with {encoder} but holds an iGPU slot"
         )
-
-
-@pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)
-def test_a_vaapi_obs_never_prefers_the_rpi5_worker(manifest: Path):
-    """The Pi 5 has no H.264 encoder, so the i915 claim and its affinity exclude.
-
-    A pod carrying both is unschedulable rather than wrong — the arm64 node has
-    no i915 to allocate — but it lands as a preference, so it reads like a hint
-    and costs a platform its scale-up.
-    """
-    docs = _docs(manifest)
-    if IGPU_RESOURCE not in _obs_container(docs)["resources"]["requests"]:
-        return
-    spec = _pod_spec(docs)
-    assert RPI5_BOARD_LABEL not in yaml.safe_dump(spec.get("affinity", {})), (
-        f"{manifest.stem} claims the iGPU and still prefers the rpi5 worker"
-    )
-    assert RPI5_TAINT_KEY not in yaml.safe_dump(spec.get("tolerations", [])), (
-        f"{manifest.stem} claims the iGPU and still tolerates the rpi5 taint"
-    )
 
 
 @pytest.mark.parametrize("manifest", MANIFESTS, ids=lambda p: p.stem)

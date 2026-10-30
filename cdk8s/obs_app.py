@@ -45,14 +45,6 @@ _ONSCREENS_WAIT_INTERVAL = 2
 # mismatch leaves these pods Pending on an unbound claim.
 MUSIC_CLAIM = "obs-music-local"
 
-# The ephemeral arm64 rpi5 worker on the minipc cluster — taint repels by
-# default, board label is the affinity target. OBS opts in (stage only) ONLY
-# while it's a software encoder; a VAAPI OBS must stay on the MS-01's iGPU, so
-# the i915 claim + this affinity are mutually exclusive (see the gate below).
-_RPI5_TAINT_KEY = "dana.lol/rpi5"
-_RPI5_BOARD_LABEL = "dana.lol/board"
-_RPI5_BOARD_VALUE = "rpi5"
-
 
 def _obj(
     scope: Construct,
@@ -82,31 +74,6 @@ def _obj(
     for key, value in body.items():
         obj.add_json_patch(cdk8s.JsonPatch.add(f"/{key}", value))
     return obj
-
-
-def _prefer_rpi5_affinity() -> dict:
-    return {
-        "nodeAffinity": {
-            "preferredDuringSchedulingIgnoredDuringExecution": [
-                {
-                    "weight": 100,
-                    "preference": {
-                        "matchExpressions": [
-                            {
-                                "key": _RPI5_BOARD_LABEL,
-                                "operator": "In",
-                                "values": [_RPI5_BOARD_VALUE],
-                            }
-                        ]
-                    },
-                }
-            ]
-        }
-    }
-
-
-def _prefer_rpi5_tolerations() -> list[dict]:
-    return [{"key": _RPI5_TAINT_KEY, "operator": "Exists", "effect": "NoSchedule"}]
 
 
 def emit_image_gate(
@@ -448,8 +415,7 @@ class ObsInstance(Construct):
         # real so co-tenant bursts can't starve the encoder.
         requests: dict[str, str] = {"cpu": env.obs_cpu_request, "memory": "512Mi"}
         limits: dict[str, str] = {"memory": "3Gi"}
-        obs_uses_gpu = env.gpu and env.obs_gpu
-        if obs_uses_gpu:
+        if env.gpu:
             requests["gpu.intel.com/i915"] = "1"
             limits["gpu.intel.com/i915"] = "1"
 
@@ -519,12 +485,6 @@ class ObsInstance(Construct):
             ]
         if env.priority_class:
             pod_spec["priorityClassName"] = env.priority_class
-        # OBS joins the rpi5 worker ONLY as a software encoder (no iGPU claim);
-        # the Pi 5 has no H.264 hw encoder, so a VAAPI OBS stays on the MS-01.
-        if env.prefer_rpi5 and not obs_uses_gpu:
-            pod_spec["affinity"] = _prefer_rpi5_affinity()
-            pod_spec["tolerations"] = _prefer_rpi5_tolerations()
-
         deployment_spec: dict = {
             # Births parked; a console scale-up brings the platform live and Argo
             # ignores .spec.replicas so the scale sticks (infra argocd
