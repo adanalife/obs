@@ -24,7 +24,6 @@ Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-scene-chec
 
   OBS_EXPECTED_SCENE_FILE  where the entrypoint recorded the scene it seeded
                            (default /run/obs/expected-scene)
-  OBS_EXPECTED_SCENE       the scene name directly, overriding the file
 """
 
 import os
@@ -41,9 +40,6 @@ def expected_scene(env):
     rule here would be a contract that drifts silently — the healthcheck would
     start demanding "Main" of an instance the entrypoint had put on "Vertical".
     """
-    direct = (env.get("OBS_EXPECTED_SCENE") or "").strip()
-    if direct:
-        return direct
     path = env.get("OBS_EXPECTED_SCENE_FILE") or DEFAULT_SCENE_FILE
     try:
         with open(path, encoding="utf-8") as f:

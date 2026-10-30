@@ -568,13 +568,6 @@ def test_without_an_expected_name_any_populated_scene_passes():
     assert scene_check.check_scene(_SceneClient("Test", items=()), "") != []
 
 
-def test_expected_scene_prefers_the_env_override_to_the_file(tmp_path):
-    f = tmp_path / "expected-scene"
-    f.write_text("Main\n")
-    env = {"OBS_EXPECTED_SCENE_FILE": str(f), "OBS_EXPECTED_SCENE": "Vertical"}
-    assert scene_check.expected_scene(env) == "Vertical"
-
-
 def test_expected_scene_reads_the_file_the_entrypoint_wrote(tmp_path):
     f = tmp_path / "expected-scene"
     # jq -r leaves a trailing newline; comparing it raw would never match.
@@ -586,14 +579,6 @@ def test_a_missing_file_means_no_expectation_not_an_error(tmp_path):
     missing = str(tmp_path / "nope")
     assert scene_check.expected_scene({"OBS_EXPECTED_SCENE_FILE": missing}) == ""
     assert scene_check.expected_scene({}) == ""
-
-
-@pytest.mark.parametrize("blank", ["", "   ", "\n"])
-def test_a_blank_override_falls_through_to_the_file(blank, tmp_path):
-    f = tmp_path / "expected-scene"
-    f.write_text("Main")
-    env = {"OBS_EXPECTED_SCENE_FILE": str(f), "OBS_EXPECTED_SCENE": blank}
-    assert scene_check.expected_scene(env) == "Main"
 
 
 # --- obs-scene-check as the liveness probe runs it: main()'s exit code ---
@@ -634,20 +619,24 @@ def test_an_unreachable_websocket_is_unknown_not_unhealthy(monkeypatch, capsys):
     assert "skipped" in capsys.readouterr().err
 
 
-def test_the_wrong_scene_on_air_fails_the_probe(monkeypatch, capsys):
+def test_the_wrong_scene_on_air_fails_the_probe(monkeypatch, tmp_path, capsys):
     class _OnTest(_Connected):
         scene = _SceneClient("Test")
 
     _obsws(monkeypatch, _OnTest)
-    monkeypatch.setenv("OBS_EXPECTED_SCENE", "Main")
+    seeded = tmp_path / "expected-scene"
+    seeded.write_text("Main\n")
+    monkeypatch.setenv("OBS_EXPECTED_SCENE_FILE", str(seeded))
     assert scene_check.main() == 1
     assert "expected 'Main'" in capsys.readouterr().err
 
 
-def test_the_seeded_scene_with_sources_passes_the_probe(monkeypatch):
+def test_the_seeded_scene_with_sources_passes_the_probe(monkeypatch, tmp_path):
     class _OnMain(_Connected):
         scene = _SceneClient("Main")
 
     _obsws(monkeypatch, _OnMain)
-    monkeypatch.setenv("OBS_EXPECTED_SCENE", "Main")
+    seeded = tmp_path / "expected-scene"
+    seeded.write_text("Main\n")
+    monkeypatch.setenv("OBS_EXPECTED_SCENE_FILE", str(seeded))
     assert scene_check.main() == 0
