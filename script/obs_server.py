@@ -1,11 +1,10 @@
-"""obs-server: tiny HTTP listener bridging OBS to the admin panel.
+"""obs-server: tiny HTTP listener exposing OBS's health and version.
 
 OBS itself doesn't expose an HTTP surface (only obs-websocket on :4455).
-The admin panel needs three things from OBS that the Go services expose
-natively via their own HTTP listeners — health, version, and a shutdown
-endpoint that triggers a pod restart. obs-server provides them in the same
-shape, so the admin panel can treat OBS like its sibling backend services in
-the status table. Named for symmetry with onscreens-server.
+obs-server serves `/health/ready` and `/version` in the same shape the Go
+services expose from their own listeners, so the console can treat OBS like
+its sibling backend services in the status table. Named for symmetry with
+onscreens-server.
 
 Flask was picked over stdlib http.server because the route DSL reads
 obvious and we already have a Python venv in the image for obsws-python
@@ -16,30 +15,17 @@ plenty — no need for gunicorn/waitress.
 
 from __future__ import annotations
 
-import os
-import signal
-import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, make_response
+from flask import Flask, jsonify
 
 # Bake-time version files written by the OBS Dockerfile, matching the
 # convention the Go services use (their /version reads VCS info from
 # the binary itself; we mirror via files).
 VERSION_FILE = Path("/etc/tripbot/version")
 SHA_FILE = Path("/etc/tripbot/sha")
-
-# Delay between responding 202 and signalling supervisord, so the
-# response reaches the admin panel before the container starts dying.
-# Matches the Go services' shutdownDelay.
-SHUTDOWN_DELAY_SECONDS = 0.5
-
-# PID 1 is tini, which forwards the SIGTERM to supervisord (the entrypoint
-# execs it); that brings down all the supervised programs cleanly and the
-# container exits, which k8s restartPolicy: Always then respawns.
-SUPERVISORD_PID = 1
 
 app = Flask(__name__)
 started_at = time.time()
@@ -62,7 +48,7 @@ def ready() -> tuple[str, int]:
 
     We deliberately don't poke obs-websocket here: that surface lives
     on :4455 and OBS readiness is its own signal. This shim's job is
-    just to expose the admin surface.
+    just to expose health and version.
     """
     return "OK\n", 200
 
@@ -70,7 +56,7 @@ def ready() -> tuple[str, int]:
 @app.get("/version")
 def version():
     """Build metadata as JSON. Mirrors the Go services' /version shape:
-    {tag, sha, built_at, started_at} — the admin panel parses this
+    {tag, sha, built_at, started_at} — the console parses this
     identically across all four services.
     """
     return jsonify(
@@ -91,35 +77,6 @@ def _built_at() -> str:
     except OSError:
         return ""
     return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-
-
-@app.post("/admin/shutdown")
-def shutdown():
-    """Trigger a container exit. Schedule SIGTERM-to-supervisord after a
-    short delay so the 202 lands on the client first; supervisord's
-    shutdown brings down all children, container exits, k8s respawns
-    the pod.
-
-    threading.Timer (not signal.setitimer + SIGALRM): Flask's dev server
-    is multi-threaded, so request handlers don't run in the main thread —
-    and Python's signal.* APIs raise from non-main threads. A Timer runs
-    in a background thread, fires after the delay, and SIGTERMs pid 1
-    without that constraint.
-    """
-    app.logger.warning(
-        "admin shutdown requested — SIGTERMing supervisord (pid %d) in %.1fs",
-        SUPERVISORD_PID,
-        SHUTDOWN_DELAY_SECONDS,
-    )
-    threading.Timer(SHUTDOWN_DELAY_SECONDS, _fire_shutdown).start()
-    return make_response(("shutting down\n", 202))
-
-
-def _fire_shutdown():
-    try:
-        os.kill(SUPERVISORD_PID, signal.SIGTERM)
-    except OSError as exc:  # supervisord already dead, or PID mapping odd
-        app.logger.error("failed to SIGTERM supervisord: %s", exc)
 
 
 def main() -> None:

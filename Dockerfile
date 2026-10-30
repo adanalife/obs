@@ -133,8 +133,8 @@ RUN mkdir -p /etc/tripbot \
 EXPOSE 5900
 EXPOSE 4455
 EXPOSE 6080
-# obs-server: Flask app exposing /health/ready, /version, POST /admin/shutdown
-# so the admin panel can treat OBS like onscreens-server. Port
+# obs-server: Flask app exposing /health/ready and /version so the console
+# can treat OBS like onscreens-server. Port
 # 8080 matches the fleet's "primary HTTP listener" convention (the OBS pod has no
 # other Go HTTP server, so 8080 is free here). Lives in the shared
 # /opt/obs/venv; supervised by obs-server.conf.
