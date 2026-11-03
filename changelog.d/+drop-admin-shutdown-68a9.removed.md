@@ -1,0 +1,1 @@
+obs-server no longer serves `POST /admin/shutdown`. Nothing has called it since the admin panel's "restart OBS" button was retired, and it let any in-cluster pod end the stream with one unauthenticated request. `/health/ready` and `/version` are the whole server now.
