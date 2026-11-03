@@ -34,7 +34,9 @@ fi
 # OBS_VERTICAL and builds the Vertical scene to match.
 start_scene='Main'
 [[ "${OBS_VERTICAL:-false}" == "true" ]] && start_scene='Vertical'
-obs_args=(--disable-shutdown-check --collection 'Tripbot' --profile 'ADanaLife' --scene "$start_scene")
+# OBS has no flag to skip its "Crash Detected" dialog; healthcheck.sh fails
+# liveness on it, so the kubelet restarts into a fresh container instead.
+obs_args=(--collection 'Tripbot' --profile 'ADanaLife' --scene "$start_scene")
 
 OBS_HOME="${HOME:-/root}/.config/obs-studio"
 if [[ -f "$OBS_HOME/basic/profiles/ADanaLife/service.json" ]]; then
