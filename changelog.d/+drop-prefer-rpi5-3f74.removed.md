@@ -1,0 +1,1 @@
+The cdk8s config no longer carries `prefer_rpi5` or the rpi5 affinity and toleration helpers, and `obs_gpu` folds into `gpu`. The rpi5 bias only applied to a software-encoded OBS, and every env that set it also claims the iGPU, so it never reached a manifest; `dist/` is byte-identical.
