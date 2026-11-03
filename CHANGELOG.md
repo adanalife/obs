@@ -13,6 +13,12 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.17.1] — 2026-11-03
+
+### Removed
+
+- Drop the `--disable-shutdown-check` argument from the OBS launch: OBS 32 no longer parses it, and the healthcheck is what recovers from the crash dialog. ([#197](https://github.com/adanalife/obs/pull/197))
+
 ## [v2.17.0] — 2026-10-28
 
 ### Added
