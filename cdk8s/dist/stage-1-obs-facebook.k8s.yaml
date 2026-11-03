@@ -227,32 +227,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/issuer: letsencrypt-route53
-    external-dns.alpha.kubernetes.io/hostname: obs-facebook.stage.whereisdana.today
-  name: obs-facebook
-  namespace: stage-1
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: obs-facebook.stage.whereisdana.today
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: obs-facebook
-                port:
-                  name: novnc
-  tls:
-    - hosts:
-        - obs-facebook.stage.whereisdana.today
-      secretName: obs-facebook-tls
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
     tailscale.com/proxy-group: ingress-proxies
   name: obs-facebook-ts
   namespace: stage-1

@@ -3,8 +3,10 @@
 #
 # Auth is OFF. wayvnc binds 0.0.0.0:5900 inside the pod and offers RFB
 # "None" — nothing outside the pod connects to it directly. The browser
-# reaches it through noVNC + websockify (:6080) behind the traefik Ingress,
-# and that Ingress is the access-control boundary.
+# reaches it through noVNC + websockify (:6080) behind the Tailscale Ingress
+# only, so being on the tailnet is the access-control boundary. There is
+# deliberately no LAN Ingress: that would be the OBS desktop, stream key
+# included, for every device on the home network.
 #
 # There are deliberately no encrypted security types (VeNCrypt / RSA-AES /
 # Apple-DH) and no per-pod TLS cert here. The only client that would want
@@ -13,8 +15,8 @@
 # security type is negotiated. The browser noVNC client speaks standard
 # RFB.
 #
-# If the obs Ingress is ever exposed beyond the LAN, add auth at traefik
-# (basic-auth middleware) — not here.
+# If noVNC is ever published anywhere but the tailnet, add auth in front of
+# it (a traefik basic-auth / forwardAuth middleware) — not here.
 
 address=0.0.0.0
 port=5900

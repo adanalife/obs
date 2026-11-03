@@ -2,7 +2,7 @@
 
 `ObsInstance(platform="youtube", env=...)` emits cleanly-named `obs-youtube`
 objects (ConfigMap, Deployment, Service, and — per env — a stream-key
-ExternalSecret, a host-access LoadBalancer, and noVNC Ingresses), with an
+ExternalSecret, a host-access LoadBalancer, and a tailnet noVNC Ingress), with an
 `app: obs-youtube` selector so a Service only ever selects its own pods. The
 per-env overlays (GPU claim, encoder, quality, stream-key toggle, ingress) are
 data on EnvConfig.
@@ -610,54 +610,12 @@ class ObsInstance(Construct):
                 },
             )
 
-        # --- Ingress (noVNC) — only where the env publishes DNS (no labels) ---
-        if env.dns_base:
-            self._ingress(name, env, ns)
+        # --- Ingress (noVNC) — tailnet only. wayvnc runs with auth off, so
+        #     the Tailscale Ingress is the whole access gate; a LAN (traefik)
+        #     Ingress would hand the OBS desktop, stream key included, to every
+        #     device on the home network. ---
         if env.tailscale and env.dns_base:
             self._tailscale_ingress(name, env, ns)
-
-    def _ingress(self, name: str, env: EnvConfig, ns: str):
-        host = f"{name}.{env.dns_base}"
-        ann = {"external-dns.alpha.kubernetes.io/hostname": host}
-        # minipc envs (prod/stage) get real TLS via the namespaced Route53 issuer;
-        # dev is HTTP-only.
-        tls = env.cluster == "minipc"
-        if tls:
-            ann["cert-manager.io/issuer"] = "letsencrypt-route53"
-        spec: dict = {
-            "ingressClassName": "traefik",
-            "rules": [
-                {
-                    "host": host,
-                    "http": {
-                        "paths": [
-                            {
-                                "path": "/",
-                                "pathType": "Prefix",
-                                "backend": {
-                                    "service": {
-                                        "name": name,
-                                        "port": {"name": "novnc"},
-                                    }
-                                },
-                            }
-                        ]
-                    },
-                }
-            ],
-        }
-        if tls:
-            spec["tls"] = [{"hosts": [host], "secretName": f"{name}-tls"}]
-        _obj(
-            self,
-            "ingress",
-            api_version="networking.k8s.io/v1",
-            kind="Ingress",
-            name=name,
-            namespace=ns,
-            annotations=ann,
-            spec=spec,
-        )
 
     def _tailscale_ingress(self, name: str, env: EnvConfig, ns: str):
         short = env.dns_base.split(".")[0]  # prod / stage / dev
