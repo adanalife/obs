@@ -76,6 +76,24 @@ MUSIC_DIR=$work/music set_background_audio album "$scene" >/dev/null
 [[ $(bg '[.filters[].id] | join(",")' "$scene") == compressor_filter,limiter_filter ]] ||
   fail "album: the bed must keep its compressor -> limiter chain"
 
+# The share's albums are Ogg Opus; a `.opus` track must be pickable on its own.
+scene=$work/album-opus.json
+render_scene "$scene"
+mkdir -p "$work/opus/fifty-horizons"
+touch "$work/opus/fifty-horizons/002 Vermont.opus"
+MUSIC_DIR=$work/opus set_background_audio album "$scene" 2>/dev/null >/dev/null
+[[ $(bg '.settings.local_file' "$scene") == *.opus ]] ||
+  fail "album: an .opus track must be picked, not fall back to carhum"
+
+# An album dir holding only its cover art has no track to play.
+scene=$work/album-cover-only.json
+render_scene "$scene"
+mkdir -p "$work/coveronly/fifty-horizons"
+touch "$work/coveronly/fifty-horizons/cover.jpg"
+MUSIC_DIR=$work/coveronly set_background_audio album "$scene" 2>/dev/null >/dev/null
+[[ $(bg '.settings.local_file' "$scene") == *car-hum* ]] ||
+  fail "album: cover art is not a track"
+
 # Loose files at the share root are not tracks. The real share keeps a 556MB
 # carsounds.m4a next to the album directories; picking it would put a
 # nine-hour file on the stream and stall the rotation.
