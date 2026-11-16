@@ -30,15 +30,14 @@ updates:
   # defaults, so the otherwise-automatic dependencies/ecosystem labels are
   # restated here.
   #
-  # Minor and patch bumps batch into one PR per ecosystem. A major is left out
-  # of every non-Actions group so a breaking change arrives on its own,
-  # attributable to a single dependency instead of hiding among a dozen safe
-  # ones. Security updates ignore groups entirely and always arrive alone.
-  #
-  # The Actions group takes majors too, unlike the others. An action major is
-  # normally a runner or Node version bump rather than an API break, so the
-  # attributability that keeps majors solo elsewhere buys little here — and
-  # holding them out produced a standing queue of one-line PRs nobody merged.
+  # Every ecosystem batches into one PR per scheduled run, majors included,
+  # and a second group per ecosystem catches security updates, which
+  # Dependabot otherwise opens one PR per advisory on whatever day it lands.
+  # Each solo PR costs a full CI run and touches the same lockfile as its
+  # siblings, so the first merge leaves the rest conflicting -- and
+  # rebase-strategy is disabled, so nothing repairs them. A red group is
+  # bisected by hand; that is cheaper than the queue of single-bump PRs it
+  # replaces.
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -47,6 +46,10 @@ updates:
       time: "13:00"
     groups:
       actions:
+        patterns:
+          - "*"
+      actions-security:
+        applies-to: security-updates
         patterns:
           - "*"
     labels:
@@ -62,16 +65,25 @@ updates:
       interval: weekly
       day: monday
       time: "13:00"
+    groups:
+      docker:
+        patterns:
+          - "*"
+      docker-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     labels:
       - dependencies
       - docker
       - skip-changelog
-  # The cdk8s authoring layer's Python dependencies, declared in
-  # pyproject.toml's dependency-groups and locked in uv.lock. Without this
-  # entry they take no updates at all, security included.
     cooldown:
       default-days: 7
     rebase-strategy: disabled
+  # The cdk8s authoring layer's Python dependencies, declared in
+  # pyproject.toml's dependency-groups and locked in uv.lock. Without this
+  # entry they take no updates at all, security included.
+  #
   # This repo's uv project is the cdk8s authoring layer, so it runs quarterly
   # rather than weekly: jsii auto-releases cdk8s on nearly every upstream
   # change -- dozens of patches a quarter, all inside one minor -- so a weekly
@@ -88,9 +100,10 @@ updates:
       python:
         patterns:
           - "*"
-        update-types:
-          - minor
-          - patch
+      python-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     labels:
       - dependencies
       - python
