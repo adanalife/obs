@@ -13,6 +13,22 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.17.1] — 2026-11-16
+
+### Removed
+
+- obs-server no longer serves `POST /admin/shutdown`. Nothing has called it since the admin panel's "restart OBS" button was retired, and it let any in-cluster pod end the stream with one unauthenticated request. `/health/ready` and `/version` are the whole server now. ([#193](https://github.com/adanalife/obs/pull/193))
+- The cdk8s config no longer carries `prefer_rpi5` or the rpi5 affinity and toleration helpers, and `obs_gpu` folds into `gpu`. The rpi5 bias only applied to a software-encoded OBS, and every env that set it also claims the iGPU, so it never reached a manifest; `dist/` is byte-identical. ([#194](https://github.com/adanalife/obs/pull/194))
+- Drop the `--disable-shutdown-check` argument from the OBS launch: OBS 32 no longer parses it, and the healthcheck is what recovers from the crash dialog. ([#197](https://github.com/adanalife/obs/pull/197))
+
+### CI / Tooling
+
+- The background-audio check covers an Opus-only album and an album folder holding only cover art. ([#196](https://github.com/adanalife/obs/pull/196))
+
+### Misc
+
+- `bin/obs-scene-check` reads the expected scene only from the file the entrypoint writes; the `OBS_EXPECTED_SCENE` override, which only the tests set, is gone. ([#195](https://github.com/adanalife/obs/pull/195))
+
 ## [v2.17.0] — 2026-10-28
 
 ### Added
