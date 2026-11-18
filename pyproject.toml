@@ -27,6 +27,7 @@ dev = [
     # client. Not new supply-chain surface — script/obs_server.py imports Flask
     # at runtime and the image has carried it since the shim existed.
     "flask>=3.1.2",
+    "coverage>=7.17.3",
 ]
 
 [tool.uv]
@@ -35,3 +36,7 @@ package = false
 [tool.pytest.ini_options]
 testpaths = ["cdk8s/tests", "carhum", "script/tests"]
 pythonpath = ["cdk8s", "script"]
+
+[tool.coverage.run]
+source = ["cdk8s", "script", "carhum"]
+omit = ["*/tests/*", "*/test_*.py"]

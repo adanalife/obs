@@ -18,7 +18,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -31,12 +31,28 @@ jobs:
   manifests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # `statuses: write` for the coverage figure below; only this job posts it.
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v4
       - uses: astral-sh/setup-uv@v10.3.3 # no floating major tag published
       - name: Check manifest invariants
-        run: uv run --group cdk8s --group dev pytest -q
+        run: uv run --group cdk8s --group dev coverage run -m pytest -q
+
+      # The total as a `coverage` commit status on each main push, which is
+      # where the console's main-CI row reads every repo's figure from.
+      - name: Post the coverage figure
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          figure="$(uv run --group cdk8s --group dev coverage report --format=total --precision=1)%"
+          echo "## Coverage: $figure" >> "$GITHUB_STEP_SUMMARY"
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=success -f context=coverage -f description="$figure"
 
   # Bed selection is pure bash + jq against the committed scene template, so it
   # runs in seconds without waiting on the image build below.
