@@ -197,3 +197,52 @@ def test_an_interrupted_gap_still_restores_the_url():
         {"url": "http://onscreens/right"},
         True,
     )
+
+
+# --- reloads: a source that stays blank after its reload is left alone ---
+
+
+def test_a_source_still_blank_after_its_reload_is_not_reloaded_again():
+    # An overlay between shows is blank by design; a fresh renderer every
+    # cycle is 288 respawns a day for a page that is working.
+    client, reloads, clock = _scene(), {}, [1000.0]
+    run = lambda: refresh.refresh_blank(  # noqa: E731
+        client, sleep=client.sleep, reloads=reloads, now=lambda: clock[0]
+    )
+    assert run() == (2, 1)
+    clock[0] += refresh.RETRY_S - 1
+    assert run() == (2, 0)
+    assert reloads == {"right rotating": 1000.0}
+
+
+def test_a_still_blank_source_is_retried_once_the_wait_has_passed():
+    # The first reload may have landed while the page was unreachable.
+    client, reloads = _scene(), {"right rotating": 1000.0}
+    assert refresh.refresh_blank(
+        client,
+        sleep=client.sleep,
+        reloads=reloads,
+        now=lambda: 1000.0 + refresh.RETRY_S,
+    ) == (2, 1)
+    assert reloads == {"right rotating": 1000.0 + refresh.RETRY_S}
+
+
+def test_content_forgets_the_reload_so_the_next_blank_frame_reloads_at_once():
+    client, reloads = _scene(), {"right rotating": 1000.0}
+    args = {"sleep": client.sleep, "reloads": reloads, "now": lambda: 1001.0}
+    client.frames["right rotating"] = LIT
+    assert refresh.refresh_blank(client, **args) == (2, 0)
+    assert reloads == {}
+    client.frames["right rotating"] = BLANK
+    assert refresh.refresh_blank(client, **args) == (2, 1)
+
+
+def test_load_reloads_reads_what_was_saved_and_shrugs_off_a_bad_file(tmp_path):
+    path = tmp_path / "state.json"
+    assert refresh.load_reloads(path) == {}
+    path.write_text('{"GPS": 12.5}')
+    assert refresh.load_reloads(path) == {"GPS": 12.5}
+    path.write_text("[1, 2")
+    assert refresh.load_reloads(path) == {}
+    path.write_text("[1, 2]")
+    assert refresh.load_reloads(path) == {}
