@@ -11,6 +11,7 @@ on:
       - 'cdk8s/**'
       - '.github/workflows/cdk8s-synth.yml'
       - 'contract.json'
+      - 'platforms.json'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
