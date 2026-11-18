@@ -152,6 +152,8 @@ RUN mkdir -p /etc/tripbot \
 EXPOSE 5900
 EXPOSE 4455
 EXPOSE 6080
+# obs-server's /health/ready and /version, as in the amd64 Dockerfile.
+EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD /opt/obs/healthcheck.sh
 
