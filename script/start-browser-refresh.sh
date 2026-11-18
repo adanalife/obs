@@ -6,6 +6,8 @@
 # screenshots every browser_source and respawns the renderer of any that
 # shows a blank frame — a crashed CEF page, or one that loaded before
 # onscreens-server was up. Sources with content on them are left alone.
+# A source that stays blank after its reload (an overlay between shows) is
+# left alone too, until it shows content again or an hour has passed.
 #
 # Connects via obs-websocket on localhost:4455, so it depends on OBS being
 # up and listening. A cycle that can't reach it (OBS not up yet, or
