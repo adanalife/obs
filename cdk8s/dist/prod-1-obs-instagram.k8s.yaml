@@ -261,32 +261,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    cert-manager.io/issuer: letsencrypt-route53
-    external-dns.alpha.kubernetes.io/hostname: obs-instagram.prod.whereisdana.today
-  name: obs-instagram
-  namespace: prod-1
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: obs-instagram.prod.whereisdana.today
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: obs-instagram
-                port:
-                  name: novnc
-  tls:
-    - hosts:
-        - obs-instagram.prod.whereisdana.today
-      secretName: obs-instagram-tls
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
     tailscale.com/proxy-group: ingress-proxies
   name: obs-instagram-ts
   namespace: prod-1

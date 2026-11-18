@@ -1,0 +1,1 @@
+noVNC is published through the Tailscale Ingress only. The LAN (traefik) Ingress at `obs-<platform>.<env>.whereisdana.today` is gone: wayvnc runs with auth off, so that host was the full OBS desktop, stream key included, for every device on the home network. The tailnet host `obs-<platform>-<env>.<tailnet>.ts.net` is unchanged.
