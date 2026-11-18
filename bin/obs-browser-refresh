@@ -16,7 +16,10 @@ leaves it just as blank, so a source that stays blank after its reload is
 left alone until it has shown content again, or RETRY_S has passed in case
 that reload itself found the page unreachable.
 
-Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-browser-refresh
+With --all, every browser source is reloaded whatever it is showing, and
+nothing is remembered: the by-hand run for a page that renders but is stale.
+
+Usage: OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 ./bin/obs-browser-refresh [--all]
 """
 
 from __future__ import annotations
@@ -84,7 +87,7 @@ def load_reloads(path=STATE_PATH) -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def refresh_blank(client, sleep=time.sleep, reloads=None, now=time.time):
+def refresh_blank(client, sleep=time.sleep, reloads=None, now=time.time, force=False):
     """Respawn the renderer of every blank browser source.
 
     Returns (checked, reloaded). A source with no url is file-backed and has
@@ -92,6 +95,7 @@ def refresh_blank(client, sleep=time.sleep, reloads=None, now=time.time):
     `reloads` maps a source to when it was last reloaded and is updated in
     place: a source still blank since a reload under RETRY_S ago is skipped,
     and one showing content is forgotten, so its next blank frame reloads it.
+    With `force`, every source is reloaded unseen and `reloads` is left alone.
     The swap restores the source's own url, and both writes merge into the
     existing settings (overlay) so its size, css and the rest survive.
     """
@@ -116,20 +120,21 @@ def refresh_blank(client, sleep=time.sleep, reloads=None, now=time.time):
                 file=sys.stderr,
             )
             continue
-        shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
-        if not is_blank(decode_screenshot(shot.image_data)):
-            reloads.pop(name, None)
-            continue
-        if name in reloads and now() - reloads[name] < RETRY_S:
-            continue
-        reloads[name] = now()
+        if not force:
+            shot = client.get_source_screenshot(name, "bmp", SHOT_W, SHOT_H, -1)
+            if not is_blank(decode_screenshot(shot.image_data)):
+                reloads.pop(name, None)
+                continue
+            if name in reloads and now() - reloads[name] < RETRY_S:
+                continue
+            reloads[name] = now()
         client.set_input_settings(name, {"url": BLANK_URL}, True)
         try:
             sleep(RELOAD_GAP_S)
         finally:
             client.set_input_settings(name, {"url": url}, True)
         reloaded += 1
-        print(f"Reloaded blank source: {name}")
+        print(f"Reloaded {'' if force else 'blank '}source: {name}")
     return len(sources), reloaded
 
 
@@ -151,14 +156,16 @@ def main() -> int:
         with obs.ReqClient(
             host=host, port=port, password=password, timeout=10
         ) as client:
-            reloads = load_reloads()
+            force = "--all" in sys.argv[1:]
+            reloads = {} if force else load_reloads()
             try:
-                checked, reloaded = refresh_blank(client, reloads=reloads)
+                checked, reloaded = refresh_blank(client, reloads=reloads, force=force)
             finally:
                 # Saved even when a later source's call failed, so the reloads
                 # already made this run are not repeated on the next one.
-                with open(STATE_PATH, "w", encoding="utf-8") as f:
-                    json.dump(reloads, f)
+                if not force:
+                    with open(STATE_PATH, "w", encoding="utf-8") as f:
+                        json.dump(reloads, f)
             if not checked:
                 print("No browser sources found in OBS.")
                 return 0

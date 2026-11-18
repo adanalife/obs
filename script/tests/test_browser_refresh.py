@@ -246,3 +246,20 @@ def test_load_reloads_reads_what_was_saved_and_shrugs_off_a_bad_file(tmp_path):
     assert refresh.load_reloads(path) == {}
     path.write_text("[1, 2]")
     assert refresh.load_reloads(path) == {}
+
+
+def test_force_reloads_every_source_unseen_and_remembers_nothing():
+    # The by-hand run: a page that renders but is stale screenshots as
+    # content, so judging frames would pass it by.
+    client, reloads = _scene(), {"right rotating": 1000.0}
+    assert refresh.refresh_blank(
+        client, sleep=client.sleep, reloads=reloads, force=True
+    ) == (2, 2)
+    assert not [c for c in client.calls if c[0] == "shot"]
+    assert [c[1] for c in client.calls if c[0] == "write"] == [
+        "left rotating",
+        "left rotating",
+        "right rotating",
+        "right rotating",
+    ]
+    assert reloads == {"right rotating": 1000.0}
