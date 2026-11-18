@@ -1,1 +1,0 @@
-The browser-source refresh no longer respawns an overlay that is blank by design every five minutes: a source still blank after its reload is left alone until it shows content again, or an hour has passed.

@@ -13,6 +13,23 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.17.2] — 2026-11-18
+
+### Added
+
+- `bin/obs-browser-refresh --all` reloads every browser source whatever it is showing, for a page that renders but is stale. ([#204](https://github.com/adanalife/obs/pull/204))
+
+### Fixed
+
+- The browser-source refresh no longer respawns an overlay that is blank by design every five minutes: a source still blank after its reload is left alone until it shows content again, or an hour has passed. ([#204](https://github.com/adanalife/obs/pull/204))
+- The arm64 image declares obs-server's port 8080, as the amd64 image does. ([#207](https://github.com/adanalife/obs/pull/207))
+
+### CI / Tooling
+
+- The test suite's total coverage posts as a `coverage` commit status on every push to main. ([#203](https://github.com/adanalife/obs/pull/203))
+- The post-merge cdk8s sync check also runs when `platforms.json` changes, which the synth reads. ([#205](https://github.com/adanalife/obs/pull/205))
+- The test workflow no longer re-runs on a release tag, whose commit it already tested on `main`. ([#206](https://github.com/adanalife/obs/pull/206))
+
 ## [v2.17.1] — 2026-11-16
 
 ### Removed
