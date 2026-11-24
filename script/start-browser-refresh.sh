@@ -18,8 +18,11 @@ set -euo pipefail
 # loading isn't mistaken for a dead one; after that, every five minutes.
 sleep 120
 while :; do
+  # SIGINT, not timeout's default SIGTERM: Python unwinds on it, so a run cut
+  # off mid-reload still puts the source's url back instead of leaving the
+  # overlay on about:blank. -k is the backstop if that restore hangs too.
   OBS_WEBSOCKET_HOST=localhost OBS_WEBSOCKET_PORT=4455 \
-    timeout 60 /opt/obs/venv/bin/python /opt/obs/bin/obs-browser-refresh \
+    timeout -s INT -k 15 60 /opt/obs/venv/bin/python /opt/obs/bin/obs-browser-refresh \
     || echo "[browser-refresh] failed (will retry next cycle)" >&2
   sleep 300
 done
