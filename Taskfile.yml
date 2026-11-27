@@ -53,6 +53,11 @@ tasks:
     cmds:
       - bash scripts/check-background-audio.sh
 
+  scene:preview:
+    desc: Serve the Main scene laid out in a browser, no OBS needed (ONSCREENS_URL_BASE=the overlay server, DASHCAM_STILL=a frame, PORT=8089)
+    cmds:
+      - bin/obs-scene-preview
+
   # contract.json is the canonical service-name/port/env-key vocabulary, owned
   # by tripbot (generated from its pkg/contract Go constants) and synced into
   # this repo. cdk8s/contract.py reads it for the onscreens service names and

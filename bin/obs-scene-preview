@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""Lay a scene from config/Tripbot.json.tmpl out as one HTML page, so overlay
+placement can be judged in a browser with no OBS running.
+
+Every browser source becomes an iframe at its scene position, every image
+source an <img>, and the dashcam a still. The pages are whatever
+ONSCREENS_URL_BASE serves, so they show that server's state; they are proxied
+through this script because onscreens-server forbids framing.
+
+  ONSCREENS_URL_BASE=http://localhost:8080 DASHCAM_STILL=frame.jpg bin/obs-scene-preview
+
+Open http://localhost:8089 (PORT to change it); press `b` (or add #boxes to the
+URL) to outline each source. The template is re-read on every load, so edit a
+position and reload.
+"""
+
+from __future__ import annotations
+
+import html
+import http.server
+import json
+import os
+import pathlib
+import re
+import urllib.error
+import urllib.request
+
+REPO = pathlib.Path(__file__).resolve().parents[1]
+
+PAGE = """<!DOCTYPE html>
+<meta charset="utf-8">
+<title>scene preview / {scene}</title>
+<style>
+  html {{ background: #111; }}
+  body {{ margin: 0; overflow: hidden; }}
+  #canvas {{ position: relative; width: {w}px; height: {h}px; overflow: hidden;
+            background: #000; transform-origin: 0 0; }}
+  .item {{ position: absolute; }}
+  .item > * {{ position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; }}
+  .item > b {{ display: none; z-index: 1; font: 12px/1.3 Menlo, monospace; white-space: nowrap;
+              color: #000; background: #ffd400; padding: 0 4px; }}
+  .boxes .item {{ outline: 1px dashed #ffd400; }}
+  .boxes .item > b {{ display: block; }}
+</style>
+<div id="canvas">
+{items}
+</div>
+<script>
+  var canvas = document.getElementById('canvas');
+  function fit() {{
+    canvas.style.transform = 'scale(' + Math.min(innerWidth / {w}, innerHeight / {h}) + ')';
+  }}
+  function boxes() {{ document.body.classList.toggle('boxes', location.hash === '#boxes'); }}
+  addEventListener('resize', fit); addEventListener('hashchange', boxes);
+  addEventListener('keydown', function (e) {{
+    if (e.key === 'b') location.hash = location.hash === '#boxes' ? '' : '#boxes';
+  }});
+  fit(); boxes();
+</script>
+"""
+
+
+def load_scene(template: str, env: dict[str, str]) -> dict:
+    """The scene collection with its ${PLACEHOLDERS} filled; an unset one reads 0,
+    which is valid in both the string and the bare-number positions."""
+    return json.loads(re.sub(r"\$\{(\w+)\}", lambda m: env.get(m[1], "0"), template))
+
+
+def render(collection: dict, scene: str = "Main", still: str = "") -> str:
+    """The HTML page for one scene of the collection."""
+    sources = {s["name"]: s for s in collection["sources"]}
+    width, height = 1920, 1080
+    items = []
+    # shortcut: item rotation and crop are ignored (Main uses neither); honor
+    # them here before previewing the generated Vertical scene.
+    for item in sources[scene]["settings"]["items"]:
+        src = sources.get(item["name"])
+        if not src or not item.get("visible", True):
+            continue
+        kind, settings = src["id"], src.get("settings", {})
+        fitted = item.get("bounds_type", 0) != 0
+        if kind == "browser_source":
+            w, h = settings["width"], settings["height"]
+            el = f'<iframe src="{html.escape(settings["url"])}" width="{w}" height="{h}" scrolling="no"></iframe>'
+        elif kind == "image_source":
+            el = f'<img src="/assets/{html.escape(pathlib.Path(settings["file"]).name)}">'
+            w, h = (item["bounds"]["x"], item["bounds"]["y"]) if fitted else (0, 0)
+        elif item["name"] == "Dashcam" and still:
+            w, h = item["bounds"]["x"], item["bounds"]["y"]
+            el = f'<img src="{html.escape(still)}" width="{w}" height="{h}">'
+        else:
+            continue
+        sx, sy = (
+            (item["bounds"]["x"] / w, item["bounds"]["y"] / h)
+            if fitted and w
+            else (item["scale"]["x"], item["scale"]["y"])
+        )
+        # A negative scale mirrors the source about its position, so the box it
+        # covers starts that much to the left (or above).
+        left = item["pos"]["x"] + min(0, w * sx)
+        top = item["pos"]["y"] + min(0, h * sy)
+        items.append(
+            f'<div class="item" style="left:{left}px;top:{top}px;width:{abs(w * sx)}px;height:{abs(h * sy)}px">'
+            f"<b>{html.escape(item['name'])} {abs(w * sx):.0f}×{abs(h * sy):.0f} @ {left:.0f},{top:.0f}</b>"
+            f"{el.replace('>', f''' style="transform:translate({max(0, -w * sx)}px,{max(0, -h * sy)}px) scale({sx},{sy})">''', 1)}"
+            "</div>"
+        )
+    return PAGE.format(
+        scene=html.escape(scene), w=width, h=height, items="\n".join(items)
+    )
+
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    upstream = os.environ.get("ONSCREENS_URL_BASE", "http://localhost:8080").rstrip("/")
+    still = os.environ.get("DASHCAM_STILL", "")
+    template = pathlib.Path(
+        os.environ.get("SCENE_TEMPLATE", REPO / "config" / "Tripbot.json.tmpl")
+    )
+
+    def do_GET(self):
+        path = self.path.split("?")[0]
+        try:
+            if path == "/":
+                # Relative page URLs, so every iframe comes back through this proxy.
+                collection = load_scene(
+                    self.template.read_text(), {**os.environ, "ONSCREENS_URL_BASE": ""}
+                )
+                page = render(
+                    collection,
+                    os.environ.get("SCENE", "Main"),
+                    "/still" if self.still else "",
+                )
+                return self.reply(200, "text/html; charset=utf-8", page.encode())
+            if path == "/still":
+                return self.reply(
+                    200, "image/jpeg", pathlib.Path(self.still).read_bytes()
+                )
+            if path.startswith("/assets/"):
+                return self.reply(
+                    200,
+                    "image/png",
+                    (REPO / "assets" / pathlib.Path(path).name).read_bytes(),
+                )
+            with urllib.request.urlopen(self.upstream + self.path, timeout=5) as r:
+                return self.reply(
+                    r.status, r.headers.get("Content-Type", "text/plain"), r.read()
+                )
+        except urllib.error.HTTPError as e:
+            self.reply(e.code, "text/plain", e.read())
+        except OSError as e:
+            self.reply(502, "text/plain", str(e).encode())
+
+    def reply(self, status: int, ctype: str, body: bytes):
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", "8089"))
+    print(f"scene preview on http://localhost:{port} (pages from {Handler.upstream})")
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
