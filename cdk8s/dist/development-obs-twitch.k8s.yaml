@@ -147,24 +147,3 @@ spec:
     - name: vnc
       port: 5902
       targetPort: vnc
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: obs-twitch.dev.whereisdana.today
-  name: obs-twitch
-  namespace: development
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: obs-twitch.dev.whereisdana.today
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: obs-twitch
-                port:
-                  name: novnc
