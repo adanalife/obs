@@ -13,6 +13,27 @@ former `adanalife/obs:3.4.1`.
 
 <!-- towncrier release notes start -->
 
+## [v2.18.0] — 2026-11-27
+
+### Added
+
+- A `Weather` browser source at the top-left of the Main scene, showing the clip's conditions icon and temperature from the tripbot weather onscreen. ([#200](https://github.com/adanalife/obs/pull/200))
+- `bin/obs-browser-refresh --all` reloads every browser source whatever it is showing, for a page that renders but is stale. ([#204](https://github.com/adanalife/obs/pull/204))
+- A `Minimap` browser source at the lower right of the Main scene, showing the tripbot minimap onscreen: a map of the lower 48 with a dot where the van is. ([#210](https://github.com/adanalife/obs/pull/210))
+- `task scene:preview` lays the Main scene out in a browser — every overlay at its scene position over a dashcam still — so a placement can be judged without running OBS. ([#212](https://github.com/adanalife/obs/pull/212))
+
+### Fixed
+
+- The browser-source refresh no longer respawns an overlay that is blank by design every five minutes: a source still blank after its reload is left alone until it shows content again, or an hour has passed. ([#204](https://github.com/adanalife/obs/pull/204))
+- The arm64 image declares obs-server's port 8080, as the amd64 image does. ([#207](https://github.com/adanalife/obs/pull/207))
+- A browser-source reload cut off by its 60-second limit puts the overlay's URL back instead of leaving it on about:blank. ([#211](https://github.com/adanalife/obs/pull/211))
+
+### CI / Tooling
+
+- The test suite's total coverage posts as a `coverage` commit status on every push to main. ([#203](https://github.com/adanalife/obs/pull/203))
+- The post-merge cdk8s sync check also runs when `platforms.json` changes, which the synth reads. ([#205](https://github.com/adanalife/obs/pull/205))
+- The test workflow no longer re-runs on a release tag, whose commit it already tested on `main`. ([#206](https://github.com/adanalife/obs/pull/206))
+
 ## [v2.17.1] — 2026-11-16
 
 ### Removed
